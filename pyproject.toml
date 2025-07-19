@@ -4,7 +4,7 @@ version = "1.0.0"
 authors = [
   { name="Nick Stuer", email="nickstuer@duck.com" },
 ]
-description = "A lightweight, TOML-backed configuration/settings utility that that exposes project settings as standard Python dictionaries."
+description = "A configuration/settings utility that that exposes project settings as standard Python dictionaries."
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [

@@ -12,9 +12,9 @@
 [![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
 [![license](https://img.shields.io/github/license/nickstuer/zettings.svg)](LICENSE)
 
-A lightweight, TOML-backed configuration/settings utility that that exposes project settings as standard Python dictionaries.
+A configuration/settings utility that that exposes project settings as standard Python dictionaries.
 
-zettings is a Python configuration library designed for simplicity and developer ergonomics. It loads settings data from TOML files and exposes them as standard Python dictionaries — allowing you to work with settings in a familiar, Pythonic way.
+zettings is a Python configuration library designed for simplicity. It loads settings data from TOML files and exposes them as standard Python dictionaries. This allows you to work with settings in a familiar, Pythonic way.
 
 ## Table of Contents
 
@@ -26,12 +26,12 @@ zettings is a Python configuration library designed for simplicity and developer
 
 ## Features
 
-- TOML-powered: Uses TOML under the hood for modern, human-friendly settings files.
-- Dictionary-like interface: Access and manipulate settings with regular dictionary operations.
-- Nested access: Supports nested keys with dotted key notation.
+- TOML: Uses TOML under the hood for modern settings files.
+- Dictionary: Access and change settings with regular dictionary operations.
+- Nested Keys: Supports nested dictionary keys with dotted key notation.
 - Optional `defaults`: Provide default values for initializing the settings file or for when a key is missing in the settings file.
 - Optional `always_reload`: Reload the setting file everytime a key is read. (Enabled by default)
-- Optional `filepath`: Provide the exact file Path of the .toml file to use. (overrides name)
+- Optional `filepath`: Provide the exact file Path of the .toml file to use. (overrides `name`)
 
 
 ## Install
