@@ -88,7 +88,7 @@ class Settings:
         set_nested_value(self._data, NOTICE_KEY, NOTICE)
         set_nested_value(self._data, CREATED_KEY, datetime.now(tz=timezone.utc).isoformat())
         set_nested_value(self._data, UPDATED_KEY, datetime.now(tz=timezone.utc).isoformat())
-        self.save()
+        self._save()
 
     def _initialize_defaults(self, d: dict, parent_key: str = "") -> None:
         """Recursively set default values for missing keys in the settings dictionary."""
@@ -99,13 +99,13 @@ class Settings:
             elif isinstance(v, dict):
                 self._initialize_defaults(v, full_key)
 
-    def save(self) -> None:
+    def _save(self) -> None:
         """Save the settings to the file and update the updated timestamp."""
         set_nested_value(self._data, UPDATED_KEY, datetime.now(tz=timezone.utc).isoformat())
         with Path.open(self._filepath, mode="w", encoding="utf-8") as f:
             toml.dump(self._data, f)
 
-    def load(self) -> None:
+    def _load(self) -> None:
         """Load the settings from the file."""
         with Path.open(self._filepath, mode="r", encoding="utf-8") as f:
             self._data = toml.load(f)
@@ -121,7 +121,7 @@ class Settings:
 
         """
         if self.always_reload:
-            self.load()
+            self._load()
         return get_nested_value(self._data, key)
 
     def set(self, key: str, value: Any) -> None:  # noqa: ANN401
@@ -140,10 +140,10 @@ class Settings:
             raise PermissionError(error_message)
 
         if self.always_reload:
-            self.load()
+            self._load()
 
         set_nested_value(self._data, key, value)
-        self.save()
+        self._save()
 
     def __getitem__(self, key: str) -> Any | None:  # noqa: ANN401
         """Get an item from the configuration by key."""
