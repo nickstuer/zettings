@@ -404,7 +404,7 @@ wheels = [
 
 [[package]]
 name = "zettings"
-version = "0.0.1.dev0"
+version = "1.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "toml" },
