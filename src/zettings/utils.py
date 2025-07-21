@@ -105,6 +105,17 @@ def delete_nested_key(d: dict, key: str, sep: str = ".") -> None:
     """Delete a nested key from a dictionary."""
     keys = key.split(sep)
     for k in keys:
+        if not is_valid_key(k):
+            error_msg = (
+                f"Invalid key: '{k}'. "
+                "Keys must be alphanumeric, underscores, or dashes, "
+                "and cannot contain spaces or quotes."
+            )
+            raise KeyError(error_msg)
+
+        if not isinstance(d, dict):
+            error_msg = f"Cannot delete nested key '{key}': '{k}' is not a dictionary."
+            raise KeyError(error_msg)
         if keys[-1] in d:
             del d[keys[-1]]
             return
