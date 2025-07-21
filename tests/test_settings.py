@@ -497,3 +497,41 @@ def test_settings_fails_with_invalid_defaults_format(settings_filepath):
 
     # Verify that the settings file is not created
     assert not settings_filepath.exists()
+
+
+def test_settings_iter_and_len_method_with_reload_true(settings_filepath):
+    settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format, always_reload=True)
+    settings2 = Settings(filepath=settings_filepath, defaults=default_settings_normal_format, always_reload=False)
+
+    settings2.set("newkey", "newkeyvalue")
+
+    # Test the iter method
+    keys = list(settings)
+    assert "settings" in keys
+    assert "metadata" in keys
+    assert "dictionary" in keys
+    assert "newkey" in keys
+
+    assert len(keys) == 4
+
+
+def test_settings_iter_and_len_method_with_reload_false(settings_filepath):
+    settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format, always_reload=False)
+    settings2 = Settings(filepath=settings_filepath, defaults=default_settings_normal_format, always_reload=False)
+
+    settings2.set("newkey", "newkeyvalue")
+
+    keys = list(settings)
+    assert "settings" in keys
+    assert "metadata" in keys
+    assert "dictionary" in keys
+    assert "newkey" not in keys
+
+    assert len(keys) == 3
+
+
+def test_settings_del_method(settings_filepath):
+    settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
+
+    with pytest.raises(PermissionError):
+        del settings["settings.name"]
