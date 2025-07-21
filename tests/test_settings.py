@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from zettings import Settings
+from zettings.exceptions import InvalidKeyFormatError
 
 default_settings_normal_format = {
     "settings": {"name": "MyName", "mood": "MyMood"},
@@ -481,18 +482,18 @@ def test_settings_repr_returns_expected_string(settings_filepath):
 
 
 def test_settings_stores_in_home_directory_if_no_filepath(temp_home):
-    settings = Settings(temp_home["name"])
+    _ = Settings(temp_home["name"])
     assert temp_home["path"].exists() is True
 
 
 def test_settings_fails_with_invalid_defaults_format(settings_filepath):
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidKeyFormatError):
         Settings(filepath=settings_filepath, defaults=default_settings_invalid_normal_format)
 
     # Verify that the settings file is not created
     assert not settings_filepath.exists()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidKeyFormatError):
         Settings(filepath=settings_filepath, defaults=default_settings_invalid_nested_format)
 
     # Verify that the settings file is not created

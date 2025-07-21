@@ -3,6 +3,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from zettings.exceptions import InvalidKeyFormatError, KeyNotADictionaryError, KeyNotFoundError
+
 
 def validate_dictionary(d: dict) -> None:
     has_dict_values = False
@@ -17,31 +19,21 @@ def validate_dictionary(d: dict) -> None:
             keys = k.split(".")
             for sub_k in keys:
                 if not is_valid_key(sub_k):
-                    error_msg = (
-                        f"Invalid key: '{sub_k}'. "
-                        "Keys must be alphanumeric, underscores, or dashes, "
-                        "and cannot contain spaces or quotes."
-                    )
-                    raise ValueError(error_msg)
+                    raise InvalidKeyFormatError(sub_k)
 
 
 def validate_dictionary_keys_loop(d: dict) -> None:
     """Validate that all keys in the dictionary are valid."""
     for key, value in d.items():
         if not is_valid_key(key):
-            error_msg = (
-                f"Invalid key: '{key}'. "
-                "Keys must be alphanumeric, underscores, or dashes, "
-                "and cannot contain spaces or quotes."
-            )
-            raise ValueError(error_msg)
+            raise InvalidKeyFormatError(key)
         if isinstance(value, dict):
             validate_dictionary_keys_loop(value)
 
 
 def is_valid_key(key: str) -> bool:
     # Bare keys: a-z, A-Z, 0-9, _, -, no quotes or spaces
-    # No support for keys with nested quotes
+    # No support for keys with nested quotes (violation of TOML spec but needed for nested keys)
     return bool(re.fullmatch(r"[A-Za-z0-9_-]+", key))
 
 
@@ -52,16 +44,10 @@ def set_nested_value(d: dict, key: str, value: Any, sep: str = ".") -> None:  # 
     previous_dict = {}
     for k in keys[:-1]:
         if not is_valid_key(k):
-            error_msg = (
-                f"Invalid key: '{k}'. "
-                "Keys must be alphanumeric, underscores, or dashes, "
-                "and cannot contain spaces or quotes."
-            )
-            raise ValueError(error_msg)
+            raise InvalidKeyFormatError(k)
 
         if not isinstance(d, dict):
-            error_msg = f"Cannot set nested value for key '{keys[-1]}': '{k}' is not a dictionary."
-            raise KeyError(error_msg)
+            raise KeyNotADictionaryError(k)
         if k not in d:
             d[k] = {}
 
@@ -69,16 +55,12 @@ def set_nested_value(d: dict, key: str, value: Any, sep: str = ".") -> None:  # 
         previous_key = k
         d = d[k]
     if not is_valid_key(keys[-1]):
-        error_msg = (
-            f"Invalid key: '{keys[-1]}'. "
-            "Keys must be alphanumeric, underscores, or dashes, "
-            "and cannot contain spaces or quotes."
-        )
-        raise ValueError(error_msg)
+        raise InvalidKeyFormatError(keys[-1])
 
+    if previous_key is not None and previous_key not in previous_dict:
+        raise KeyNotFoundError(previous_key)
     if previous_key is not None and not isinstance(previous_dict[previous_key], dict):
-        error_msg = f"Cannot set nested value for key '{keys[-1]}': '{previous_key}' is not a dictionary."
-        raise KeyError(error_msg)
+        raise KeyNotADictionaryError(previous_key)
 
     d[keys[-1]] = value
 
@@ -88,12 +70,7 @@ def get_nested_value(d: dict, key: str, sep: str = ".") -> Any | None:  # noqa: 
     keys = key.split(sep)
     for k in keys:
         if not is_valid_key(k):
-            error_msg = (
-                f"Invalid key: '{k}'. "
-                "Keys must be alphanumeric, underscores, or dashes, "
-                "and cannot contain spaces or quotes."
-            )
-            raise ValueError(error_msg)
+            raise InvalidKeyFormatError(k)
         if isinstance(d, dict) and k in d:
             d = d[k]
         else:
@@ -103,19 +80,16 @@ def get_nested_value(d: dict, key: str, sep: str = ".") -> Any | None:  # noqa: 
 
 def delete_nested_key(d: dict, key: str, sep: str = ".") -> None:
     """Delete a nested key from a dictionary."""
+    value = get_nested_value(d, key, sep)
+    if value is None:
+        raise KeyNotFoundError(key)
     keys = key.split(sep)
     for k in keys:
         if not is_valid_key(k):
-            error_msg = (
-                f"Invalid key: '{k}'. "
-                "Keys must be alphanumeric, underscores, or dashes, "
-                "and cannot contain spaces or quotes."
-            )
-            raise KeyError(error_msg)
+            raise InvalidKeyFormatError(k)
 
         if not isinstance(d, dict):
-            error_msg = f"Cannot delete nested key '{key}': '{k}' is not a dictionary."
-            raise KeyError(error_msg)
+            raise KeyNotADictionaryError(k)
         if keys[-1] in d:
             del d[keys[-1]]
             return

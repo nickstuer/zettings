@@ -9,6 +9,7 @@ from typing import Any
 
 import toml
 
+from zettings.exceptions import ReadOnlyError
 from zettings.utils import delete_nested_key, get_nested_value, set_nested_value, validate_dictionary
 
 # Constants for metadata
@@ -140,8 +141,7 @@ class Settings(MutableMapping[str, Any]):
 
         """
         if self.read_only:
-            error_message = "Settings are read-only and cannot be modified."
-            raise PermissionError(error_message)
+            raise ReadOnlyError
 
         if self.always_reload:
             self._load()
