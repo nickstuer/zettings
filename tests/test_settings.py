@@ -552,3 +552,37 @@ def test_settings_delete_with_read_only_true(settings_filepath):
     # Verify that the settings file is not modified
     assert settings.get("settings.name") == "MyName"
     assert settings["settings.name"] == "MyName"
+
+
+def test_get_with_duplicate_keynames(settings_filepath):
+    defaults = {
+        "key1.test": "value1",
+        "key1.subkey.subsubkey": "value2",
+        "key2.test": "value3",
+        "key2.subkey.subsubkey": "value4",
+        "key3.test": "value5",
+        "key3.subkey.subsubkey": "value6",
+    }
+
+    settings = Settings(filepath=settings_filepath, defaults=defaults)
+
+    assert settings.get("key1.test") == "value1"
+    assert settings.get("key1.subkey.subsubkey") == "value2"
+    assert settings.get("key2.test") == "value3"
+    assert settings.get("key2.subkey.subsubkey") == "value4"
+    assert settings.get("key3.test") == "value5"
+    assert settings.get("key3.subkey.subsubkey") == "value6"
+
+    settings.set("key1.test", "new_value1")
+    settings.set("key1.subkey.subsubkey", "new_value2")
+    settings.set("key2.test", "new_value3")
+    settings.set("key2.subkey.subsubkey", "new_value4")
+    settings.set("key3.test", "new_value5")
+    settings.set("key3.subkey.subsubkey", "new_value6")
+
+    assert settings.get("key1.test") == "new_value1"
+    assert settings.get("key1.subkey.subsubkey") == "new_value2"
+    assert settings.get("key2.test") == "new_value3"
+    assert settings.get("key2.subkey.subsubkey") == "new_value4"
+    assert settings.get("key3.test") == "new_value5"
+    assert settings.get("key3.subkey.subsubkey") == "new_value6"
