@@ -513,6 +513,7 @@ def test_settings_iter_and_len_method_with_reload_true(settings_filepath):
     assert "newkey" in keys
 
     assert len(keys) == 4
+    assert len(settings) == 12
 
 
 def test_settings_iter_and_len_method_with_reload_false(settings_filepath):

@@ -193,4 +193,14 @@ class Settings(MutableMapping[str, Any]):
         """Return the number of items in the settings."""
         if self.always_reload:
             self._load()
-        return len(self._data)
+
+        return self.count(self._data)
+
+    def count(self, d: dict) -> int:
+        """Count the number of items in a nested dictionary."""
+        total = 0
+        for value in d.values():
+            total += 1
+            if isinstance(value, dict):
+                total += self.count(value)
+        return total
