@@ -4,6 +4,7 @@ import re
 from collections.abc import MutableMapping
 from datetime import datetime, timezone
 from pathlib import Path
+from threading import Lock
 from typing import Any
 
 import toml
@@ -18,6 +19,8 @@ UPDATED_KEY = "metadata.updated"
 
 
 class Settings(MutableMapping[str, Any]):
+    lock = Lock()
+
     def __init__(
         self,
         filepath: str | Path,
@@ -103,12 +106,12 @@ class Settings(MutableMapping[str, Any]):
     def _save(self) -> None:
         """Save the settings to the file and update the updated timestamp."""
         set_nested_value(self._data, UPDATED_KEY, datetime.now(tz=timezone.utc).isoformat())
-        with Path.open(self._filepath, mode="w", encoding="utf-8") as f:
+        with self.lock, Path.open(self._filepath, mode="w", encoding="utf-8") as f:
             toml.dump(self._data, f)
 
     def _load(self) -> None:
         """Load the settings from the file."""
-        with Path.open(self._filepath, mode="r", encoding="utf-8") as f:
+        with self.lock, Path.open(self._filepath, mode="r", encoding="utf-8") as f:
             self._data = toml.load(f)
 
     def get(self, key: str) -> Any | None:  # noqa: ANN401
