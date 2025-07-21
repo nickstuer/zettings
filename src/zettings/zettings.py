@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import MutableMapping
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -16,7 +17,7 @@ CREATED_KEY = "metadata.created"
 UPDATED_KEY = "metadata.updated"
 
 
-class Settings:
+class Settings(MutableMapping[str, Any]):
     def __init__(
         self,
         filepath: str | Path,
@@ -155,3 +156,20 @@ class Settings:
 
     def __repr__(self) -> str:  # noqa: D105
         return f"Settings stored at: {self._filepath}"
+
+    def __delitem__(self, key: str) -> None:
+        """Delete an item from the configuration by key."""
+        msg = "Deletion of items is not supported yet."
+        raise PermissionError(msg)
+
+    def __iter__(self):
+        """Return an iterator over the keys in the settings."""
+        if self.always_reload:
+            self._load()
+        return iter(self._data)
+
+    def __len__(self) -> int:
+        """Return the number of items in the settings."""
+        if self.always_reload:
+            self._load()
+        return len(self._data)
