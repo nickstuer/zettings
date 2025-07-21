@@ -2,7 +2,7 @@ class ZettingsError(Exception):
     """Base class for all zettings specific errors."""
 
 
-class InvalidKeyFormatError(ZettingsError, KeyError):
+class InvalidKeyFormatError(ZettingsError):
     """Raised when a requested key is invalid."""
 
     def __init__(self, key: str):
@@ -10,7 +10,7 @@ class InvalidKeyFormatError(ZettingsError, KeyError):
         self.key = key
 
 
-class KeyNotFoundError(ZettingsError, KeyError):
+class KeyNotFoundError(ZettingsError):
     """Raised when a requested key is not found in the settings file."""
 
     def __init__(self, key: str):
@@ -18,7 +18,7 @@ class KeyNotFoundError(ZettingsError, KeyError):
         self.key = key
 
 
-class KeyNotADictionaryError(ZettingsError, KeyError):
+class KeyNotADictionaryError(ZettingsError):
     """Raised when a key is expected to be a dictionary but is not."""
 
     def __init__(self, key: str):
@@ -26,7 +26,7 @@ class KeyNotADictionaryError(ZettingsError, KeyError):
         self.key = key
 
 
-class ReadOnlyError(ZettingsError, PermissionError):
+class ReadOnlyError(ZettingsError):
     """Raised when attempting to modify the settings with read only enabled."""
 
     def __init__(self, message: str = "Settings are read only and cannot be modified."):

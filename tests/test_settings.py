@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from zettings import Settings
-from zettings.exceptions import InvalidKeyFormatError
+from zettings.exceptions import InvalidKeyFormatError, KeyNotADictionaryError, ReadOnlyError
 
 default_settings_normal_format = {
     "settings": {"name": "MyName", "mood": "MyMood"},
@@ -467,7 +467,7 @@ def test_settings_read_only_true(settings_filepath):
     )
 
     assert settings.read_only is True
-    with pytest.raises(PermissionError):
+    with pytest.raises(ReadOnlyError):
         settings.set("settings.name", "NewName")
 
 
@@ -614,5 +614,5 @@ def test_another_invalid_defaults_format(settings_filepath):
         "key1.subkey.subsubkey": "value2",
     }
 
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyNotADictionaryError):
         _ = Settings(filepath=settings_filepath, defaults=defaults)
