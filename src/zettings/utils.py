@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from zettings.exceptions import InvalidKeyFormatError, KeyNotADictionaryError, KeyNotFoundError
+from zettings.exceptions import InvalidKeyError, KeyNotFoundError, MappingError
 
 
 def validate_dictionary(d: dict) -> None:
@@ -19,14 +19,14 @@ def validate_dictionary(d: dict) -> None:
             keys = k.split(".")
             for sub_k in keys:
                 if not is_valid_key(sub_k):
-                    raise InvalidKeyFormatError(sub_k)
+                    raise InvalidKeyError(sub_k)
 
 
 def validate_dictionary_keys_loop(d: dict) -> None:
     """Validate that all keys in the dictionary are valid."""
     for key, value in d.items():
         if not is_valid_key(key):
-            raise InvalidKeyFormatError(key)
+            raise InvalidKeyError(key)
         if isinstance(value, dict):
             validate_dictionary_keys_loop(value)
 
@@ -44,10 +44,10 @@ def set_nested_value(d: dict, key: str, value: Any, sep: str = ".") -> None:  # 
     previous_dict = {}
     for k in keys[:-1]:
         if not is_valid_key(k):
-            raise InvalidKeyFormatError(k)
+            raise InvalidKeyError(k)
 
         if not isinstance(d, dict):
-            raise KeyNotADictionaryError(k)
+            raise MappingError(k)
         if k not in d:
             d[k] = {}
 
@@ -55,12 +55,12 @@ def set_nested_value(d: dict, key: str, value: Any, sep: str = ".") -> None:  # 
         previous_key = k
         d = d[k]
     if not is_valid_key(keys[-1]):
-        raise InvalidKeyFormatError(keys[-1])
+        raise InvalidKeyError(keys[-1])
 
     if previous_key is not None and previous_key not in previous_dict:
         raise KeyNotFoundError(previous_key)
     if previous_key is not None and not isinstance(previous_dict[previous_key], dict):
-        raise KeyNotADictionaryError(previous_key)
+        raise MappingError(previous_key)
 
     d[keys[-1]] = value
 
@@ -70,7 +70,7 @@ def get_nested_value(d: dict, key: str, sep: str = ".") -> Any | None:  # noqa: 
     keys = key.split(sep)
     for k in keys:
         if not is_valid_key(k):
-            raise InvalidKeyFormatError(k)
+            raise InvalidKeyError(k)
         if isinstance(d, dict) and k in d:
             d = d[k]
         else:
@@ -86,10 +86,10 @@ def delete_nested_key(d: dict, key: str, sep: str = ".") -> None:
     keys = key.split(sep)
     for k in keys:
         if not is_valid_key(k):
-            raise InvalidKeyFormatError(k)
+            raise InvalidKeyError(k)
 
         if not isinstance(d, dict):
-            raise KeyNotADictionaryError(k)
+            raise MappingError(k)
         if keys[-1] in d:
             del d[keys[-1]]
             return

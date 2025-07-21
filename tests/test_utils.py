@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from zettings.exceptions import InvalidKeyFormatError, KeyNotADictionaryError, KeyNotFoundError
+from zettings.exceptions import InvalidKeyError, KeyNotFoundError, MappingError
 from zettings.utils import delete_nested_key, get_nested_value, is_valid_key, set_nested_value, validate_dictionary
 
 
@@ -46,23 +46,23 @@ def test_is_valid_key(key, expected):
 
 def test_get_nested_invalid_key():
     d = {"a": {"b": {"c": 1}}}
-    with pytest.raises(InvalidKeyFormatError):
+    with pytest.raises(InvalidKeyError):
         get_nested_value(d, "a.b ")
-    with pytest.raises(InvalidKeyFormatError):
+    with pytest.raises(InvalidKeyError):
         get_nested_value(d, "b ")
-    with pytest.raises(InvalidKeyFormatError):
+    with pytest.raises(InvalidKeyError):
         get_nested_value(d, "b .c.d.a")
 
 
 def test_set_nested_invalid_key():
     d = {"a": {"b": {"c": 1}}}
-    with pytest.raises(InvalidKeyFormatError):
+    with pytest.raises(InvalidKeyError):
         set_nested_value(d, "a.b .c", 2)
-    with pytest.raises(InvalidKeyFormatError):
+    with pytest.raises(InvalidKeyError):
         set_nested_value(d, "b ", 2)
-    with pytest.raises(InvalidKeyFormatError):
+    with pytest.raises(InvalidKeyError):
         set_nested_value(d, "b .c.d.a", 2)
-    with pytest.raises(InvalidKeyFormatError):
+    with pytest.raises(InvalidKeyError):
         set_nested_value(d, "a.b.c ", 2)
 
 
@@ -112,10 +112,10 @@ def test_get_nested_with_custom_separator():
 def test_set_nested_cannot_overwrite_non_dict():
     d = {"a": 1}
 
-    with pytest.raises(KeyNotADictionaryError):
+    with pytest.raises(MappingError):
         set_nested_value(d, "a.b", 3)
 
-    with pytest.raises(KeyNotADictionaryError):
+    with pytest.raises(MappingError):
         set_nested_value(d, "a.b.c", 3)
     assert d == {"a": 1}
 
@@ -141,11 +141,11 @@ def test_delete_nested_key():
 
 def test_delete_nested_key_invalid():
     d = {"a": {"b": {"c": 1}}}
-    with pytest.raises(InvalidKeyFormatError):
+    with pytest.raises(InvalidKeyError):
         delete_nested_key(d, "a.b.c ")
-    with pytest.raises(InvalidKeyFormatError):
+    with pytest.raises(InvalidKeyError):
         delete_nested_key(d, "b .c.d.a")
-    with pytest.raises(InvalidKeyFormatError):
+    with pytest.raises(InvalidKeyError):
         delete_nested_key(d, "a.b.c ")
     with pytest.raises(KeyNotFoundError):
         delete_nested_key(d, "a.b.c.d.e")
@@ -160,7 +160,7 @@ def test_validate_dictionary():
 
     validate_dictionary(valid_dict)
     validate_dictionary(valid_dict2)
-    with pytest.raises(InvalidKeyFormatError):
+    with pytest.raises(InvalidKeyError):
         validate_dictionary(invalid_dict)
-    with pytest.raises(InvalidKeyFormatError):
+    with pytest.raises(InvalidKeyError):
         validate_dictionary(invalid_dict2)

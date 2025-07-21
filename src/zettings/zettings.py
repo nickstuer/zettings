@@ -175,7 +175,7 @@ class Settings(MutableMapping[str, Any]):
         """
         if self.read_only:
             error_message = "Settings are read only and cannot be modified."
-            raise PermissionError(error_message)
+            raise ReadOnlyError(error_message)
 
         if self.always_reload:
             self._load()

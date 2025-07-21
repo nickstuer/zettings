@@ -1,16 +1,16 @@
 from zettings.exceptions import (
-    InvalidKeyFormatError,
-    KeyNotADictionaryError,
+    InvalidKeyError,
     KeyNotFoundError,
+    MappingError,
     ReadOnlyError,
     ZettingsError,
 )
 
 
 def test_zettings_errors_inherit_zettings_error():
-    assert issubclass(InvalidKeyFormatError, ZettingsError)
+    assert issubclass(InvalidKeyError, ZettingsError)
     assert issubclass(KeyNotFoundError, ZettingsError)
-    assert issubclass(KeyNotADictionaryError, ZettingsError)
+    assert issubclass(MappingError, ZettingsError)
     assert issubclass(ReadOnlyError, ZettingsError)
 
 

@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from zettings import Settings
-from zettings.exceptions import InvalidKeyFormatError, KeyNotADictionaryError, ReadOnlyError
+from zettings.exceptions import InvalidKeyError, MappingError, ReadOnlyError
 
 default_settings_normal_format = {
     "settings": {"name": "MyName", "mood": "MyMood"},
@@ -487,13 +487,13 @@ def test_settings_stores_in_home_directory_if_no_filepath(temp_home):
 
 
 def test_settings_fails_with_invalid_defaults_format(settings_filepath):
-    with pytest.raises(InvalidKeyFormatError):
+    with pytest.raises(InvalidKeyError):
         Settings(filepath=settings_filepath, defaults=default_settings_invalid_normal_format)
 
     # Verify that the settings file is not created
     assert not settings_filepath.exists()
 
-    with pytest.raises(InvalidKeyFormatError):
+    with pytest.raises(InvalidKeyError):
         Settings(filepath=settings_filepath, defaults=default_settings_invalid_nested_format)
 
     # Verify that the settings file is not created
@@ -566,7 +566,7 @@ def test_settings_delete_with_read_only_true(settings_filepath):
     settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
 
     settings.read_only = True
-    with pytest.raises(PermissionError):
+    with pytest.raises(ReadOnlyError):
         del settings["settings.name"]
 
     # Verify that the settings file is not modified
@@ -614,5 +614,5 @@ def test_another_invalid_defaults_format(settings_filepath):
         "key1.subkey.subsubkey": "value2",
     }
 
-    with pytest.raises(KeyNotADictionaryError):
+    with pytest.raises(MappingError):
         _ = Settings(filepath=settings_filepath, defaults=defaults)
