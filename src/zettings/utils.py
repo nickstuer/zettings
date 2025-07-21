@@ -92,5 +92,8 @@ def delete_nested_key(d: dict, key: str, sep: str = ".") -> None:
     """Delete a nested key from a dictionary."""
     keys = key.split(sep)
     for k in keys:
+        if isinstance(d, dict) and keys[-1] in d:
+            del d[keys[-1]]
+            return
         if isinstance(d, dict) and k in d:
-            d.pop(k, None)
+            d = d[k]

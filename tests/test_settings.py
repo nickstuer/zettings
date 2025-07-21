@@ -541,6 +541,24 @@ def test_settings_del_method(settings_filepath):
     assert settings.get("newkey") is None
     assert settings["newkey"] is None
 
+    # Test Nested Key Deletion
+    settings.set("nested.key", "nested_value")
+    settings.set("nested.another_key", "another_value")
+    assert settings.get("nested.key") == "nested_value"
+    assert settings.get("nested.another_key") == "another_value"
+
+    del settings["nested.key"]
+    assert settings.get("nested.key") is None
+    assert settings.get("nested.another_key") == "another_value"
+
+    settings.set("nested.key", "nested_value")
+    settings.set("nested.another_key", "another_value")
+    assert settings.get("nested.key") == "nested_value"
+    assert settings.get("nested.another_key") == "another_value"
+    del settings["nested.another_key"]
+    assert settings.get("nested.key") == "nested_value"
+    assert settings.get("nested.another_key") is None
+
 
 def test_settings_delete_with_read_only_true(settings_filepath):
     settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
