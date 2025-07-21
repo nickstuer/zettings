@@ -86,3 +86,11 @@ def get_nested_value(d: dict, key: str, sep: str = ".") -> Any | None:  # noqa: 
         else:
             return None
     return d
+
+
+def delete_nested_key(d: dict, key: str, sep: str = ".") -> None:
+    """Delete a nested key from a dictionary."""
+    keys = key.split(sep)
+    for k in keys:
+        if isinstance(d, dict) and k in d:
+            d.pop(k, None)

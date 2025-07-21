@@ -9,7 +9,7 @@ from typing import Any
 
 import toml
 
-from zettings.utils import get_nested_value, set_nested_value, validate_dictionary
+from zettings.utils import delete_nested_key, get_nested_value, set_nested_value, validate_dictionary
 
 # Constants for metadata
 NOTICE_KEY = "metadata.notice"
@@ -161,9 +161,27 @@ class Settings(MutableMapping[str, Any]):
         return f"Settings stored at: {self._filepath}"
 
     def __delitem__(self, key: str) -> None:
-        """Delete an item from the configuration by key."""
-        msg = "Deletion of items is not supported yet."
-        raise PermissionError(msg)
+        """Delete an item from the settings by key.
+
+        Args:
+        key (str): The key to delete from the settings file.
+
+        Returns:
+        None
+
+        Raises:
+        PermissionError: If the settings are read only.
+
+        """
+        if self.read_only:
+            error_message = "Settings are read only and cannot be modified."
+            raise PermissionError(error_message)
+
+        if self.always_reload:
+            self._load()
+
+        delete_nested_key(self._data, key)
+        self._save()
 
     def __iter__(self):
         """Return an iterator over the keys in the settings."""

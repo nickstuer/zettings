@@ -533,5 +533,22 @@ def test_settings_iter_and_len_method_with_reload_false(settings_filepath):
 def test_settings_del_method(settings_filepath):
     settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
 
+    settings.set("newkey", "newkeyvalue")
+    assert settings.get("newkey") == "newkeyvalue"
+    assert settings["newkey"] is not None
+    del settings["newkey"]
+
+    assert settings.get("newkey") is None
+    assert settings["newkey"] is None
+
+
+def test_settings_delete_with_read_only_true(settings_filepath):
+    settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
+
+    settings.read_only = True
     with pytest.raises(PermissionError):
         del settings["settings.name"]
+
+    # Verify that the settings file is not modified
+    assert settings.get("settings.name") == "MyName"
+    assert settings["settings.name"] == "MyName"
