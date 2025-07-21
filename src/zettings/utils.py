@@ -18,23 +18,23 @@ def validate_dictionary(d: dict) -> None:
         for k in d:
             keys = k.split(".")
             for sub_k in keys:
-                if not is_valid_key(sub_k):
-                    raise InvalidKeyError(sub_k)
+                check_for_valid_key(sub_k)
 
 
 def validate_dictionary_keys_loop(d: dict) -> None:
     """Validate that all keys in the dictionary are valid."""
     for key, value in d.items():
-        if not is_valid_key(key):
-            raise InvalidKeyError(key)
+        check_for_valid_key(key)
         if isinstance(value, dict):
             validate_dictionary_keys_loop(value)
 
 
-def is_valid_key(key: str) -> bool:
+def check_for_valid_key(key: str) -> None:
+    """Check if a key is valid, raise InvalidKeyError if not."""
     # Bare keys: a-z, A-Z, 0-9, _, -, no quotes or spaces
     # No support for keys with nested quotes (violation of TOML spec but needed for nested keys)
-    return bool(re.fullmatch(r"[A-Za-z0-9_-]+", key))
+    if not bool(re.fullmatch(r"[A-Za-z0-9_-]+", key)):
+        raise InvalidKeyError(key)
 
 
 def set_nested_value(d: dict, key: str, value: Any, sep: str = ".") -> None:  # noqa: ANN401
@@ -43,8 +43,7 @@ def set_nested_value(d: dict, key: str, value: Any, sep: str = ".") -> None:  # 
     previous_key = None
     previous_dict = {}
     for k in keys[:-1]:
-        if not is_valid_key(k):
-            raise InvalidKeyError(k)
+        check_for_valid_key(k)
 
         if not isinstance(d, dict):
             raise MappingError(k)
@@ -54,8 +53,7 @@ def set_nested_value(d: dict, key: str, value: Any, sep: str = ".") -> None:  # 
         previous_dict = d
         previous_key = k
         d = d[k]
-    if not is_valid_key(keys[-1]):
-        raise InvalidKeyError(keys[-1])
+    check_for_valid_key(keys[-1])
 
     if previous_key is not None and previous_key not in previous_dict:
         raise KeyNotFoundError(previous_key)
@@ -69,8 +67,7 @@ def get_nested_value(d: dict, key: str, sep: str = ".") -> Any | None:  # noqa: 
     """Get a nested value from a dictionary by key."""
     keys = key.split(sep)
     for k in keys:
-        if not is_valid_key(k):
-            raise InvalidKeyError(k)
+        check_for_valid_key(k)
         if isinstance(d, dict) and k in d:
             d = d[k]
         else:
@@ -85,8 +82,7 @@ def delete_nested_key(d: dict, key: str, sep: str = ".") -> None:
         raise KeyNotFoundError(key)
     keys = key.split(sep)
     for k in keys:
-        if not is_valid_key(k):
-            raise InvalidKeyError(k)
+        check_for_valid_key(k)
 
         if not isinstance(d, dict):
             raise MappingError(k)
