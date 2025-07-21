@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from zettings.utils import get_nested_value, is_valid_key, set_nested_value
+from zettings.utils import delete_nested_key, get_nested_value, is_valid_key, set_nested_value, validate_dictionary
 
 
 @pytest.fixture
@@ -122,3 +122,44 @@ def test_set_nested_cannot_overwrite_non_dict():
 def test_get_nested_returns_none_for_non_dict():
     d = {"a": 1}
     assert get_nested_value(d, "a.b") is None
+
+
+def test_delete_nested_key():
+    d = {"a": {"b": {"c": 1}}}
+    delete_nested_key(d, "a.b.c")
+    assert d == {"a": {"b": {}}}
+
+    d = {"a": {"b": 2}}
+    delete_nested_key(d, "a.b")
+    assert d == {"a": {}}
+
+    d = {"x": 5}
+    delete_nested_key(d, "x")
+    assert d == {}
+
+
+def test_delete_nested_key_invalid():
+    d = {"a": {"b": {"c": 1}}}
+    with pytest.raises(KeyError):
+        delete_nested_key(d, "a.b.c ")
+    with pytest.raises(KeyError):
+        delete_nested_key(d, "b .c.d.a")
+    with pytest.raises(KeyError):
+        delete_nested_key(d, "a.b.c ")
+    with pytest.raises(KeyError):
+        delete_nested_key(d, "a.b.c.d.e")
+
+
+def test_validate_dictionary():
+    valid_dict = {"a": {"b": {"c": 1}}}
+    valid_dict2 = {"a": True}
+
+    invalid_dict = {"a": {"b": {"c": 1, "d+": 2}}}
+    invalid_dict2 = {"a": True, "b+": True}
+
+    validate_dictionary(valid_dict)
+    validate_dictionary(valid_dict2)
+    with pytest.raises(ValueError):
+        validate_dictionary(invalid_dict)
+    with pytest.raises(ValueError):
+        validate_dictionary(invalid_dict2)
