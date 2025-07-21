@@ -604,3 +604,13 @@ def test_get_with_duplicate_keynames(settings_filepath):
     assert settings.get("key2.subkey.subsubkey") == "new_value4"
     assert settings.get("key3.test") == "new_value5"
     assert settings.get("key3.subkey.subsubkey") == "new_value6"
+
+
+def test_another_invalid_defaults_format(settings_filepath):
+    defaults = {
+        "key1.subkey": "value1",
+        "key1.subkey.subsubkey": "value2",
+    }
+
+    with pytest.raises(KeyError):
+        _ = Settings(filepath=settings_filepath, defaults=defaults)

@@ -108,10 +108,15 @@ def test_get_nested_with_custom_separator():
     assert get_nested_value(d, "a|b|c", sep="|") == 42
 
 
-def test_set_nested_overwrites_non_dict():
+def test_set_nested_cannot_overwrite_non_dict():
     d = {"a": 1}
-    set_nested_value(d, "a.b", 2)
-    assert d == {"a": {"b": 2}}
+
+    with pytest.raises(KeyError):
+        set_nested_value(d, "a.b", 3)
+
+    with pytest.raises(KeyError):
+        set_nested_value(d, "a.b.c", 3)
+    assert d == {"a": 1}
 
 
 def test_get_nested_returns_none_for_non_dict():
