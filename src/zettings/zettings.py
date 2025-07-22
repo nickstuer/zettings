@@ -9,14 +9,9 @@ from typing import Any
 
 import toml
 
+from zettings.constants import CREATED_KEY, NOTICE, NOTICE_KEY, UPDATED_KEY
 from zettings.exceptions import KeyNotFoundError, ReadOnlyError
 from zettings.utils import delete_nested_key, get_nested_value, set_nested_value, validate_dictionary_keys
-
-# Constants for metadata
-NOTICE_KEY = "metadata.notice"
-NOTICE = "This file was created by zettings."
-CREATED_KEY = "metadata.created"
-UPDATED_KEY = "metadata.updated"
 
 
 class Settings(MutableMapping[str, Any]):
