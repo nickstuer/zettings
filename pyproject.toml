@@ -39,6 +39,7 @@ asyncio_mode = "auto"
 line-length = 120
 show-fixes = true
 
+
 [tool.ruff.lint]
 select = [
     "ALL",
@@ -57,6 +58,9 @@ ignore = [
   "D203",
   "COM812",
 ]
+
+[tool.ruff.lint.pylint]
+max-args = 10
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*.py" = ["S101", "D103", "PLR2004", "ANN201", "ANN202", "ANN001", "D401", "D404"]
