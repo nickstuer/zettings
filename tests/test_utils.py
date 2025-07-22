@@ -9,7 +9,7 @@ from zettings.utils import (
     delete_nested_key,
     get_nested_value,
     set_nested_value,
-    validate_dictionary,
+    validate_dictionary_keys,
 )
 
 
@@ -105,7 +105,11 @@ def test_set_nested(initial, key, value, expected):
     ],
 )
 def test_get_nested(d, key, expected):
-    assert get_nested_value(d, key) == expected
+    if expected:
+        assert get_nested_value(d, key) == expected
+    else:
+        with pytest.raises(KeyNotFoundError):
+            get_nested_value(d, key)
 
 
 def test_set_nested_with_custom_separator():
@@ -132,7 +136,8 @@ def test_set_nested_cannot_overwrite_non_dict():
 
 def test_get_nested_returns_none_for_non_dict():
     d = {"a": 1}
-    assert get_nested_value(d, "a.b") is None
+    with pytest.raises(KeyNotFoundError):
+        get_nested_value(d, "a.b")
 
 
 def test_delete_nested_key():
@@ -157,8 +162,12 @@ def test_delete_nested_key_invalid():
         delete_nested_key(d, "b .c.d.a")
     with pytest.raises(InvalidKeyError):
         delete_nested_key(d, "a.b.c ")
-    with pytest.raises(KeyNotFoundError):
+    with pytest.raises(MappingError):
         delete_nested_key(d, "a.b.c.d.e")
+    with pytest.raises(KeyNotFoundError):
+        delete_nested_key(d, "a.b.x")
+    with pytest.raises(KeyNotFoundError):
+        delete_nested_key(d, "a.x.c.d")
 
 
 def test_validate_dictionary():
@@ -168,9 +177,9 @@ def test_validate_dictionary():
     invalid_dict = {"a": {"b": {"c": 1, "d+": 2}}}
     invalid_dict2 = {"a": True, "b+": True}
 
-    validate_dictionary(valid_dict)
-    validate_dictionary(valid_dict2)
+    validate_dictionary_keys(valid_dict)
+    validate_dictionary_keys(valid_dict2)
     with pytest.raises(InvalidKeyError):
-        validate_dictionary(invalid_dict)
+        validate_dictionary_keys(invalid_dict)
     with pytest.raises(InvalidKeyError):
-        validate_dictionary(invalid_dict2)
+        validate_dictionary_keys(invalid_dict2)

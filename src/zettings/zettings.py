@@ -10,7 +10,7 @@ from typing import Any
 import toml
 
 from zettings.exceptions import ReadOnlyError
-from zettings.utils import delete_nested_key, get_nested_value, set_nested_value, validate_dictionary
+from zettings.utils import delete_nested_key, get_nested_value, set_nested_value, validate_dictionary_keys
 
 # Constants for metadata
 NOTICE_KEY = "metadata.notice"
@@ -80,7 +80,7 @@ class Settings(MutableMapping[str, Any]):
         if defaults is None:
             defaults = {}
 
-        validate_dictionary(defaults)
+        validate_dictionary_keys(defaults)
         if not self.read_only:
             self._initialize_file()
             self._initialize_defaults(defaults)
