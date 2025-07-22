@@ -192,9 +192,9 @@ def test_settings_defaults_type_fails(settings_filepath, value):
         ({"settings.toml": "value"}),
     ],
 )
-def test_settings_always_reloads_type_fails(settings_filepath, value):
+def test_settings_auto_reloads_type_fails(settings_filepath, value):
     with pytest.raises(TypeError):
-        _ = Settings(filepath=settings_filepath, defaults=value, always_reload=value)
+        _ = Settings(filepath=settings_filepath, defaults=value, auto_reload=value)
 
 
 @pytest.mark.parametrize(
@@ -413,7 +413,7 @@ def test_settings_sets_default_settings_of_nested_dictionaries_if_not_present(se
     assert new_settings.get("settings.face") == "round"
 
 
-def test_settings_always_reload_true(settings_filepath):
+def test_settings_auto_reload_true(settings_filepath):
     settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
 
     assert settings.get("settings.name") == "MyName"
@@ -426,9 +426,9 @@ def test_settings_always_reload_true(settings_filepath):
     assert settings.get("settings.name") == "NewName"
 
 
-def test_settings_always_reload_false(settings_filepath):
+def test_settings_auto_reload_false(settings_filepath):
     settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
-    settings.always_reload = False
+    settings.auto_reload = False
 
     assert settings.get("settings.name") == "MyName"
 
@@ -453,7 +453,7 @@ def test_settings_dynamic_reload_true_set(settings_filepath):
 
 def test_settings_dynamic_reload_false_set(settings_filepath):
     settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
-    settings.always_reload = False
+    settings.auto_reload = False
 
     assert settings.get("settings.name") == "MyName"
 
@@ -511,8 +511,8 @@ def test_settings_fails_with_invalid_defaults_format(settings_filepath):
 
 
 def test_settings_iter_and_len_method_with_reload_true(settings_filepath):
-    settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format, always_reload=True)
-    settings2 = Settings(filepath=settings_filepath, defaults=default_settings_normal_format, always_reload=False)
+    settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format, auto_reload=True)
+    settings2 = Settings(filepath=settings_filepath, defaults=default_settings_normal_format, auto_reload=False)
 
     settings2.set("newkey", "newkeyvalue")
 
@@ -528,8 +528,8 @@ def test_settings_iter_and_len_method_with_reload_true(settings_filepath):
 
 
 def test_settings_iter_and_len_method_with_reload_false(settings_filepath):
-    settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format, always_reload=False)
-    settings2 = Settings(filepath=settings_filepath, defaults=default_settings_normal_format, always_reload=False)
+    settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format, auto_reload=False)
+    settings2 = Settings(filepath=settings_filepath, defaults=default_settings_normal_format, auto_reload=False)
 
     settings2.set("newkey", "newkeyvalue")
 

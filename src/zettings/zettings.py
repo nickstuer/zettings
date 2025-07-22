@@ -27,7 +27,7 @@ class Settings(MutableMapping[str, Any]):
         filepath: str | Path,
         defaults: dict | None = None,
         *,
-        always_reload: bool = True,
+        auto_reload: bool = True,
         read_only: bool = False,
     ) -> None:
         """Initialize the settings manager.
@@ -42,7 +42,7 @@ class Settings(MutableMapping[str, Any]):
             filepath (Path): An explicit path to the settings file.
 
             defaults (dict | None, optional): A dictionary of default settings. Defaults to None.
-            always_reload (bool, optional): Whether to always reload settings from file. Defaults to True.
+            auto_reload (bool, optional): Whether to always reload settings from file. Defaults to True.
             read_only (bool, optional): If True, disables writing to the settings file. Defaults to False.
 
 
@@ -67,14 +67,14 @@ class Settings(MutableMapping[str, Any]):
         if not isinstance(defaults, (dict, type(None))):
             error_message = "defaults must be a dictionary or None"
             raise TypeError(error_message)
-        if not isinstance(always_reload, bool):
-            error_message = "always_reload must be a boolean"
+        if not isinstance(auto_reload, bool):
+            error_message = "auto_reload must be a boolean"
             raise TypeError(error_message)
         if not isinstance(read_only, bool):
             error_message = "read_only must be a boolean"
             raise TypeError(error_message)
 
-        self.always_reload = always_reload
+        self.auto_reload = auto_reload
         self.read_only = read_only
         self._data = {}
         if defaults is None:
@@ -125,7 +125,7 @@ class Settings(MutableMapping[str, Any]):
         bool: True if the key exists, False otherwise.
 
         """
-        if self.always_reload:
+        if self.auto_reload:
             self._load()
 
         return self.get(key) is not None
@@ -144,7 +144,7 @@ class Settings(MutableMapping[str, Any]):
         KeyNotValidError: If the key is not valid.
 
         """
-        if self.always_reload:
+        if self.auto_reload:
             self._load()
 
         try:
@@ -171,7 +171,7 @@ class Settings(MutableMapping[str, Any]):
         if self.read_only:
             raise ReadOnlyError
 
-        if self.always_reload:
+        if self.auto_reload:
             self._load()
 
         set_nested_value(self._data, key, value)
@@ -205,7 +205,7 @@ class Settings(MutableMapping[str, Any]):
             error_message = "Settings are read only and cannot be modified."
             raise ReadOnlyError(error_message)
 
-        if self.always_reload:
+        if self.auto_reload:
             self._load()
 
         delete_nested_key(self._data, key)
@@ -213,13 +213,13 @@ class Settings(MutableMapping[str, Any]):
 
     def __iter__(self):
         """Return an iterator over the keys in the settings."""
-        if self.always_reload:
+        if self.auto_reload:
             self._load()
         return iter(self._data)
 
     def __len__(self) -> int:
         """Return the number of items in the settings."""
-        if self.always_reload:
+        if self.auto_reload:
             self._load()
 
         return self.count(self._data)
