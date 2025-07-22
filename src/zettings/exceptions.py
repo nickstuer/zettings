@@ -44,3 +44,7 @@ class InvalidValueError(ZettingsError):
         super().__init__(f"Invalid value '{value}' for key '{key}'.")
         self.key = key
         self.value = value
+
+
+class TypeHintError(ZettingsError):
+    """Raised when a value does not match the expected type hint."""

@@ -8,6 +8,7 @@ description = "A configuration/settings utility that that exposes project settin
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
+    "beartype>=0.21.0",
     "toml>=0.10.2",
 ]
 # Development Status :: Common values are:

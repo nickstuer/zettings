@@ -1,588 +1,226 @@
-import shutil
 from pathlib import Path
 
 import pytest
+import toml
 
-from zettings import Zettings
-from zettings.exceptions import InvalidKeyError, InvalidValueError, MappingError, ReadOnlyError
-
-default_settings_normal_format = {
-    "settings": {"name": "MyName", "mood": "MyMood"},
-    "dictionary": {
-        "key1": "value1",
-        "key2": "value2",
-        "subdictionary": {"key1": "subvalue1", "key2": "subvalue2"},
-    },
-}
-default_settings_nested_format = {
-    "settings.name": "MyName",
-    "settings.mood": "MyMood",
-    "dictionary.key1": "value1",
-    "dictionary.key2": "value2",
-    "dictionary.subdictionary.key1": "subvalue1",
-    "dictionary.subdictionary.key2": "subvalue2",
-}
-default_settings_invalid_normal_format = {
-    "settings": {"name": "MyName", "mood": "MyMood"},
-    "dictionary": {
-        "key1'invalid'": "value1",
-        "key2": "value2",
-        "subdictionary": {"key1": "subvalue1", "key2": "subvalue2"},
-    },
-}
-default_settings_invalid_nested_format = {
-    "settings.name": "MyName",
-    "settings.mood": "MyMood",
-    "dictionary.key1": "value1",
-    "dictionary.key2": "value2",
-    "dictionary.subdict'invalidionary.key1": "subvalue1",
-    "dictionary.subdictionary.key2": "subvalue2",
-}
-
-
-@pytest.fixture
-def settings_filepath(tmpdir_factory: pytest.TempdirFactory):
-    temp_dir = str(tmpdir_factory.mktemp("temp"))
-    temp_testing_dir = temp_dir + "/testing/settings.toml"
-    yield Path(temp_testing_dir)
-    shutil.rmtree(temp_dir)
-
-
-@pytest.fixture
-def temp_home():
-    name = ".test-blah-blah-test-only/settings.toml"
-    path = Path.home() / name
-    temp_dir = path.parent
-    if path.exists():
-        path.unlink()
-
-    temp_home = {}
-    temp_home["dir"] = temp_dir
-    temp_home["name"] = name
-    temp_home["path"] = path
-    yield temp_home
-
-    if path.exists():
-        path.unlink()
-
-    if temp_dir.exists():
-        temp_dir.rmdir()
-
-
-@pytest.mark.parametrize(
-    ("key", "expected"),
-    [
-        ("settings.name", False),
-        ("settings.mood", False),
-        ("dictionary.key1", False),
-        ("dictionary.subdictionary.key1", False),
-        ("metadata.notice", True),
-        ("metadata.created", True),
-        ("metadata.updated", True),
-        ("metadata.NotReal", False),
-    ],
+from tests.constants import DEFAULTS_NESTED, DEFAULTS_NORMAL, NAME
+from zettings import Zettings, constants
+from zettings.exceptions import (
+    InvalidKeyError,
+    MappingError,
+    ReadOnlyError,
 )
-def test_settings_initializes_with_empty_file(settings_filepath, key, expected):
-    settings = Zettings(settings_filepath)
-
-    if expected:
-        assert settings.get(key) is not None
-    else:
-        assert settings.get(key) is None
 
 
-def test_settings_initializes_with_default_settings_normal_format(settings_filepath):
-    settings = Zettings(settings_filepath, defaults=default_settings_normal_format)
-    for k, v in default_settings_normal_format.items():
-        assert settings.get(k) == v
-
-    assert settings.get("settings.name") == "MyName"
-    assert settings.get("settings.mood") == "MyMood"
-    assert settings.get("dictionary.key1") == "value1"
-    assert settings.get("dictionary") == {
-        "key1": "value1",
-        "key2": "value2",
-        "subdictionary": {"key1": "subvalue1", "key2": "subvalue2"},
-    }
+def test_zettings_initializes_without_defaults(temp_filepath):
+    zettings = Zettings(name=NAME, filepath=temp_filepath)
+    assert zettings.name == NAME
+    assert zettings.filepath == temp_filepath
+    assert zettings.auto_reload is True
+    assert zettings.read_only is False
+    assert zettings.get("metadata.notice") == constants.NOTICE
+    assert zettings.get("metadata.created") is not None
+    assert zettings.get("metadata.updated") is not None
+    assert len(zettings) == 4
 
 
-def test_settings_initializes_with_default_settings_nested_format(settings_filepath):
-    settings = Zettings(settings_filepath, defaults=default_settings_nested_format)
-    for k, v in default_settings_nested_format.items():
-        assert settings.get(k) == v
-
-    assert settings.get("settings.name") == "MyName"
-    assert settings.get("settings.mood") == "MyMood"
-    assert settings.get("dictionary.key1") == "value1"
-    assert settings.get("dictionary") == {
-        "key1": "value1",
-        "key2": "value2",
-        "subdictionary": {"key1": "subvalue1", "key2": "subvalue2"},
-    }
+def test_zettings_initializes_with_defaults_normal(temp_filepath):
+    zettings = Zettings(name=NAME, filepath=temp_filepath, defaults=DEFAULTS_NORMAL)
+    assert zettings.name == NAME
+    assert zettings.filepath == temp_filepath
+    assert zettings.auto_reload is True
+    assert zettings.read_only is False
+    assert zettings.get("metadata.notice") == constants.NOTICE
+    assert zettings.get("metadata.created") is not None
+    assert zettings.get("metadata.updated") is not None
+    assert len(zettings) == 24
 
 
-## Type Tests
-@pytest.mark.parametrize(
-    ("value"),
-    [
-        (523),
-        (None),
-        (["settings.toml"]),
-        ({"settings.toml": "value"}),
-    ],
-)
-def test_settings_name_type_fails(value):
-    with pytest.raises(TypeError):
-        _ = Zettings(value, read_only=True)
+def test_zettings_initializes_with_defaults_nested(temp_filepath):
+    zettings = Zettings(name=NAME, filepath=temp_filepath, defaults=DEFAULTS_NESTED)
+    assert zettings.name == NAME
+    assert zettings.filepath == temp_filepath
+    assert zettings.auto_reload is True
+    assert zettings.read_only is False
+    assert zettings.get("metadata.notice") == constants.NOTICE
+    assert zettings.get("metadata.created") is not None
+    assert zettings.get("metadata.updated") is not None
+    assert len(zettings) == 24
 
 
-@pytest.mark.parametrize(
-    ("value"),
-    [
-        "blah spaces/settings.toml",
-        "blah spaces and dashes-/settings.toml",
-        "/n/settings.toml",
-        "./settings.toml",
-        ";/settings.toml",
-        "",
-        "/settings.toml",
-        "test/.toml",
-        ".test/settings.json",
-    ],
-)
-def test_settings_name_alphanumericish_fails(value):
-    with pytest.raises(ValueError):  # noqa: PT011
-        Zettings(value, read_only=True)
+def test_zettings_handles_missing_keys_from_defaults_normal(temp_filepath):
+    defaults = DEFAULTS_NORMAL.copy()
+    defaults["foo"] = {"bar": "baz"}
+    zettings = Zettings(name=NAME, filepath=temp_filepath, defaults=defaults)
 
-
-@pytest.mark.parametrize(
-    ("value"),
-    [
-        "blah_spaces/settings.toml",
-        "123/settings.toml",
-        "abc/settings3.toml",
-        "ABC/config.toml",
-        "ABCabc123_-/settings.TOML",
-        ".blah-blah/settings.toml",
-        r"blah-blah\settings.toml",
-    ],
-)
-def test_settings_name_alphanumericish_passes(value):
-    _ = Zettings(value, read_only=True)
-
-
-@pytest.mark.parametrize(
-    ("value"),
-    [
-        (523),
-        ("abc"),
-    ],
-)
-def test_settings_defaults_type_fails(settings_filepath, value):
-    with pytest.raises(TypeError):
-        _ = Zettings(filepath=settings_filepath, defaults=value)
-
-
-@pytest.mark.parametrize(
-    ("value"),
-    [
-        (523),
-        ("abc"),
-        (["settings.toml"]),
-        ({"settings.toml": "value"}),
-    ],
-)
-def test_settings_auto_reloads_type_fails(settings_filepath, value):
-    with pytest.raises(TypeError):
-        _ = Zettings(filepath=settings_filepath, defaults=value, auto_reload=value)
-
-
-@pytest.mark.parametrize(
-    ("value"),
-    [
-        (523),
-        ("abc"),
-        (["settings.toml"]),
-        ({"settings.toml": "value"}),
-    ],
-)
-def test_settings_read_only_type_fails(settings_filepath, value):
-    with pytest.raises(TypeError):
-        _ = Zettings(filepath=settings_filepath, defaults=value, read_only=value)
-
-
-@pytest.mark.parametrize(
-    ("value"),
-    [
-        (523),
-        (False),
-        (["settings.toml"]),
-        ({"settings.toml": "value"}),
-    ],
-)
-def test_settings_filepath_type_fails(value):
-    with pytest.raises(TypeError):
-        _ = Zettings(filepath=value)
-
-
-## End Type Tests
-def test_settings_sets_missing_keys_in_defaults(settings_filepath):
-    defaults = default_settings_normal_format.copy()
-    settings = Zettings(filepath=settings_filepath, defaults=defaults)
-    assert settings.get("foo") is None
-
-    defaults["foo"] = "bar"
-    new_settings = Zettings(filepath=settings_filepath, defaults=defaults)
-
-    assert new_settings.get("foo") == "bar"
+    assert zettings.get("foo") == {"bar": "baz"}
     for k, v in defaults.items():
-        assert new_settings.get(k) == v
+        if isinstance(v, dict):
+            assert zettings.get(k) == v
+            for subkey, subvalue in v.items():
+                assert zettings.get(f"{k}.{subkey}") == subvalue
+        assert zettings.get(k) == v
 
 
-def test_settings_get_and_set_methods_success(settings_filepath):
-    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
+def test_zettings_handles_missing_keys_from_defaults_nested(temp_filepath):
+    defaults = DEFAULTS_NESTED.copy()
+    defaults["foo"] = "bar"
+    zettings = Zettings(name=NAME, filepath=temp_filepath, defaults=defaults)
 
-    settings.set("string", "string_value")
-    settings.set("int", 42)
-    settings.set("float", 3.14)
-    settings.set("bool", True)  # noqa: FBT003
-    settings.set("list", [1, 2, 3])
-    settings.set("dict", {"key": "value"})
-    settings.set("nested_dict", {"nested_key": {"sub_key": "sub_value"}})
-    settings.set("empty_list", [])
-    settings.set("nested_list", [[1, 2, 3], [4, 5, 6], ["a", "b", "c"]])
-    settings.set("empty_dict", {})
-    settings.set("complex", {"list": [1, 2, 3], "dict": {"key": "value"}})
-    settings.set("complex_nested", {"outer": {"inner": {"key": "value"}}})
-    settings.set("unicode", "こんにちは")  # Japanese for "Hello"
-    settings.set("emoji", "😊")  # Smiling face emoji
+    assert zettings.get("foo") == "bar"
+    for k, v in defaults.items():
+        assert zettings.get(k) == v
 
-    assert settings.get("string") == "string_value"
-    assert settings.get("int") == 42
-    assert settings.get("float") == 3.14
-    assert settings.get("bool") is True
-    assert settings.get("list") == [1, 2, 3]
-    assert settings.get("dict") == {"key": "value"}
-    assert settings.get("nested_dict") == {"nested_key": {"sub_key": "sub_value"}}
-    assert settings.get("empty_list") == []
-    assert settings.get("nested_list") == [[1, 2, 3], [4, 5, 6], ["a", "b", "c"]]
-    assert settings.get("empty_dict") == {}
-    assert settings.get("complex") == {"list": [1, 2, 3], "dict": {"key": "value"}}
-    assert settings.get("complex_nested") == {"outer": {"inner": {"key": "value"}}}
-    assert settings.get("unicode") == "こんにちは"
-    assert settings.get("emoji") == "😊"
 
+def test_zettings_set_overrides_existing_value(temp_zettings):
+    temp_zettings.set("foo", "bar")
+    assert temp_zettings.get("foo") == "bar"
 
-def test_unable_to_set_none_to_value(settings_filepath):
-    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
+    temp_zettings.set("foo", "baz")
+    assert temp_zettings.get("foo") == "baz"
 
-    with pytest.raises(InvalidValueError):
-        settings.set("settings.name", None)
 
+def test_zettings_get_returns_none_for_non_existent_key(temp_zettings):
+    assert temp_zettings.get("non_existent_key") is None
 
-def test_settings_overrides_existing_settings(settings_filepath):
-    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
 
-    # Set an initial value
-    settings.set("name", "InitialName")
-    assert settings.get("name") == "InitialName"
+def test_zettings_get_returns_default_value_for_non_existent_key(temp_zettings):
+    assert temp_zettings.get("non_existent_key", default="default_value") == "default_value"
 
-    # Override the value
-    settings.set("name", "NewName")
-    assert settings.get("name") == "NewName"
 
+def test_zettings_init_creates_parent_directory(temp_filepath):
+    parent_dir = temp_filepath.parent
 
-def test_settings_handles_non_existent_keys(settings_filepath):
-    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
+    assert not parent_dir.exists()
 
-    assert settings.get("non_existent_key") is None
+    _ = Zettings(name=NAME, filepath=temp_filepath)
+    assert parent_dir.exists()
 
 
-def test_settings_handles_empty_settings_file(settings_filepath):
-    # Create an empty settings file
-    settings_filepath.parent.mkdir(parents=True, exist_ok=True)
-    with Path.open(settings_filepath, "w") as f:
-        f.write("")
-    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
-    # Check that default settings are applied
-    for k, v in default_settings_normal_format.items():
-        assert settings.get(k) == v
+def test_zettings_set_saves_to_file(temp_filepath):
+    settings = Zettings(name=NAME, filepath=temp_filepath)
 
+    settings.set("foo", "bar")
 
-def test_settings_handles_creating_directories_for_new_files(settings_filepath):
-    parent_dir = settings_filepath.parent
+    with Path.open(temp_filepath, "r") as f:
+        data = toml.load(f)
+    assert data["foo"] == "bar"
 
-    assert not parent_dir.exists(), "Parent directory should not exist before test"
 
-    _ = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
-    assert parent_dir.exists(), "Parent directory should be created by Settings class"
+def test_zettings_get_handles_case_sensitivity(temp_filepath):
+    settings = Zettings(name=NAME, filepath=temp_filepath)
+    settings["foo"] = "bar"
 
+    assert settings["foo"] == "bar"
+    assert settings.get("Foo") is None
 
-def test_settings_saves_settings_to_file(settings_filepath):
-    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
 
-    # Set some values
-    settings.set("name", "TestName")
-    settings.set("mood", "TestMood")
+def test_zettings_auto_reload_true(temp_filepath):
+    settings = Zettings(name=NAME, filepath=temp_filepath, auto_reload=True)
+    settings.set("foo", "bar")
 
-    # Reload the settings to check if values are saved
-    new_settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
-    assert new_settings.get("name") == "TestName"
-    assert new_settings.get("mood") == "TestMood"
+    assert settings.get("foo") == "bar"
 
+    with Path.open(temp_filepath, "r") as f:
+        data = toml.load(f)
+    assert data["foo"] == "bar"
+    data["foo"] = "baz"
+    with Path.open(temp_filepath, "w") as f:
+        toml.dump(data, f)
 
-def test_settings_with_different_cases_in_key(settings_filepath):
-    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
-    settings["caseCheck"] = "value"
+    assert settings.get("foo") == "baz"
 
-    assert settings["caseCheck"] == "value"
 
-    assert settings.get("casecheck") is None
+def test_zettings_auto_reload_false(temp_filepath):
+    settings = Zettings(name=NAME, filepath=temp_filepath, auto_reload=False)
+    settings.set("foo", "bar")
 
+    with Path.open(temp_filepath, "r") as f:
+        data = toml.load(f)
+    assert data["foo"] == "bar"
+    data["foo"] = "baz"
+    with Path.open(temp_filepath, "w") as f:
+        toml.dump(data, f)
 
-def test_settings_no_default_settings(settings_filepath):
-    # Test with no default settings
-    settings = Zettings(filepath=settings_filepath)
+    assert settings.get("foo") == "bar"
 
-    # Check that no settings are set initially
-    assert settings.get("name") is None
 
-    # Set a value and check if it persists
-    settings.set("name", "NoDefaultName")
-    assert settings.get("name") == "NoDefaultName"
+def test_zettings_set_fails_when_read_only_true(temp_filepath):
+    settings = Zettings(name=NAME, filepath=temp_filepath, read_only=True)
 
-    # Reload the settings to check if the value is saved
-    new_settings = Zettings(filepath=settings_filepath)
-    assert new_settings.get("name") == "NoDefaultName"
-
-
-def test_settings_with_getitem_and_setitem(settings_filepath):
-    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
-
-    # Test __getitem__
-    assert settings["settings.name"] == "MyName"
-    assert settings["settings.mood"] == "MyMood"
-    assert settings["dictionary.key1"] == "value1"
-
-    # Test __setitem__
-    settings["settings.name"] = "NewName"
-    assert settings["settings.name"] == "NewName"
-
-    settings["new_key"] = "new_value"
-    assert settings["new_key"] == "new_value"
-
-
-def test_settings_updates_defaults_with_nested_dict(settings_filepath: Path):
-    defaults = default_settings_nested_format.copy()
-    settings = Zettings(filepath=settings_filepath, defaults=defaults)
-    assert settings.get("dictionary.subdictionary.key3") is None
-    assert settings["dictionary.subdictionary.key3"] is None
-
-    defaults["dictionary.subdictionary.key3"] = "subvalue3"
-
-    # Access a nested value
-    new_settings = Zettings(filepath=settings_filepath, defaults=defaults)
-    assert new_settings.get("dictionary.subdictionary.key3") == "subvalue3"
-    assert new_settings["dictionary"]["subdictionary"]["key3"] == "subvalue3"
-
-
-def test_settings_initializes_defaults_with_nested_dict(settings_filepath):
-    settings = Zettings(filepath=settings_filepath, defaults=default_settings_nested_format)
-    assert settings.get("settings.name") == "MyName"
-    assert settings.get("settings.mood") == "MyMood"
-    assert settings["settings"]["name"] == "MyName"
-    assert settings["settings"]["mood"] == "MyMood"
-    assert settings.get("dictionary") is not None
-    assert settings.get("dictionary.key1") == "value1"
-    assert settings.get("dictionary.subdictionary") is not None
-    assert settings.get("dictionary.subdictionary.key1") == "subvalue1"
-
-
-def test_settings_sets_default_settings_of_nested_dictionaries_if_not_present(settings_filepath):
-    settings = Zettings(filepath=settings_filepath, defaults=default_settings_nested_format)
-    assert settings.get("settings.mood") == "MyMood"
-
-    assert settings.get("settings.face") is None
-
-    new_default_settings = default_settings_nested_format.copy()
-    new_default_settings["settings.face"] = "round"
-
-    new_settings = Zettings(filepath=settings_filepath, defaults=new_default_settings)
-
-    assert settings.get("settings.face") == "round"
-    assert new_settings.get("settings.face") == "round"
-
-
-def test_settings_auto_reload_true(settings_filepath):
-    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
-
-    assert settings.get("settings.name") == "MyName"
-
-    # Change the settings file seperatrely
-    settings2 = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
-    settings2.set("settings.name", "NewName")
-
-    # Verify that the change is reflected in the original settings object
-    assert settings.get("settings.name") == "NewName"
-
-
-def test_settings_auto_reload_false(settings_filepath):
-    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
-    settings.auto_reload = False
-
-    assert settings.get("settings.name") == "MyName"
-
-    # Change the settings file seperatrely
-    settings2 = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
-    settings2.set("settings.name", "NewName")
-
-
-def test_settings_dynamic_reload_true_set(settings_filepath):
-    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
-
-    assert settings.get("settings.name") == "MyName"
-
-    # Change the settings file seperatrely
-    settings2 = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
-    settings2.set("settings.name", "NewName3")
-
-    # Verify that the change is reflected in the original settings object
-    settings2.set("settings.mood", "MyMood")
-    assert settings.get("settings.name") == "NewName3"
-
-
-def test_settings_dynamic_reload_false_set(settings_filepath):
-    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
-    settings.auto_reload = False
-
-    assert settings.get("settings.name") == "MyName"
-
-    # Change the settings file seperatrely
-    settings2 = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
-    settings2.set("settings.name", "NewName3")
-
-    # Verify that the change is reflected in the original settings object
-    settings2.set("settings.mood", "MyMood")
-    assert settings.get("settings.name") == "MyName"
-
-    settings.set("settings.name", "NewName4")
-    assert settings.get("settings.name") == "NewName4"
-
-
-def test_settings_read_only_true(settings_filepath):
-    settings = Zettings(
-        filepath=settings_filepath,
-        defaults=default_settings_normal_format,
-        read_only=True,
-    )
-
-    assert settings.read_only is True
     with pytest.raises(ReadOnlyError):
-        settings.set("settings.name", "NewName")
+        settings.set("foo", "bar")
 
 
-# Verify that the change is reflected in the original settings object
-def test_settings_repr_returns_expected_string(settings_filepath):
-    settings = Zettings(
-        filepath=settings_filepath,
-        defaults=default_settings_normal_format,
-    )
-    expected = f"Settings stored at: {settings_filepath}"
-    assert repr(settings) == expected
+def test_zettings_del_fails_when_read_only_true(temp_filepath):
+    settings = Zettings(name=NAME, filepath=temp_filepath, read_only=True)
 
-
-def test_settings_stores_in_home_directory_if_no_filepath(temp_home):
-    _ = Zettings(temp_home["name"])
-    assert temp_home["path"].exists() is True
-
-
-def test_settings_fails_with_invalid_defaults_format(settings_filepath):
-    with pytest.raises(InvalidKeyError):
-        Zettings(filepath=settings_filepath, defaults=default_settings_invalid_normal_format)
-
-    # Verify that the settings file is not created
-    assert not settings_filepath.exists()
-
-    with pytest.raises(InvalidKeyError):
-        Zettings(filepath=settings_filepath, defaults=default_settings_invalid_nested_format)
-
-    # Verify that the settings file is not created
-    assert not settings_filepath.exists()
-
-
-def test_settings_iter_and_len_method_with_reload_true(settings_filepath):
-    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format, auto_reload=True)
-    settings2 = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format, auto_reload=False)
-
-    settings2.set("newkey", "newkeyvalue")
-
-    # Test the iter method
-    keys = list(settings)
-    assert "settings" in keys
-    assert "metadata" in keys
-    assert "dictionary" in keys
-    assert "newkey" in keys
-
-    assert len(keys) == 4
-    assert len(settings) == 12
-
-
-def test_settings_iter_and_len_method_with_reload_false(settings_filepath):
-    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format, auto_reload=False)
-    settings2 = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format, auto_reload=False)
-
-    settings2.set("newkey", "newkeyvalue")
-
-    keys = list(settings)
-    assert "settings" in keys
-    assert "metadata" in keys
-    assert "dictionary" in keys
-    assert "newkey" not in keys
-
-    assert len(keys) == 3
-
-
-def test_settings_del_method(settings_filepath):
-    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
-
-    settings.set("newkey", "newkeyvalue")
-    assert settings.get("newkey") == "newkeyvalue"
-    del settings["newkey"]
-
-    assert settings.get("newkey") is None
-
-    # Test Nested Key Deletion
-    settings.set("nested.key", "nested_value")
-    settings.set("nested.another_key", "another_value")
-    assert settings.get("nested.key") == "nested_value"
-    assert settings.get("nested.another_key") == "another_value"
-
-    del settings["nested.key"]
-    assert settings.get("nested.key") is None
-    assert settings.get("nested.another_key") == "another_value"
-
-    settings.set("nested.key", "nested_value")
-    settings.set("nested.another_key", "another_value")
-    assert settings.get("nested.key") == "nested_value"
-    assert settings.get("nested.another_key") == "another_value"
-    del settings["nested.another_key"]
-    assert settings.get("nested.key") == "nested_value"
-    assert settings.get("nested.another_key") is None
-
-
-def test_settings_delete_with_read_only_true(settings_filepath):
-    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
-
-    settings.read_only = True
     with pytest.raises(ReadOnlyError):
-        del settings["settings.name"]
-
-    # Verify that the settings file is not modified
-    assert settings.get("settings.name") == "MyName"
-    assert settings["settings.name"] == "MyName"
+        del settings["foo"]
 
 
-def test_get_with_duplicate_keynames(settings_filepath):
+def test_zettings_repr_returns_expected_string(temp_filepath):
+    zettings = Zettings(name=NAME, filepath=temp_filepath, defaults=DEFAULTS_NORMAL)
+    expected = f"Settings `{zettings.name}`. File stored at: {temp_filepath}"
+    assert repr(zettings) == expected
+
+
+def test_zettings_stores_settings_in_home_directory_if_no_filepath(temp_homepath):
+    _ = Zettings(name=NAME)
+    assert temp_homepath.exists()
+
+
+def test_settings_iter_(temp_filepath):
+    zettings = Zettings(name=NAME, filepath=temp_filepath, save_metadata=False, auto_reload=False)
+    keys = list(zettings)
+    assert len(keys) == 0
+
+    zettings._data["foo"] = "bar"  # noqa: SLF001
+    zettings._data["baz"] = {"qux": "quux"}  # noqa: SLF001
+    keys = list(zettings)
+
+    assert len(keys) == 2
+    assert len(zettings) == 3
+
+
+def test_zettings_del(temp_filepath):
+    zettings = Zettings(name=NAME, filepath=temp_filepath)
+
+    zettings.set("newkey", "newkeyvalue")
+    assert zettings.get("newkey") == "newkeyvalue"
+    del zettings["newkey"]
+    assert zettings.get("newkey") is None
+
+    zettings.set("nested.key", "nested_value")
+    zettings.set("nested.another_key", "another_value")
+    assert zettings.get("nested.key") == "nested_value"
+    assert zettings.get("nested.another_key") == "another_value"
+
+    del zettings["nested.key"]
+    assert zettings.get("nested.key") is None
+    assert zettings.get("nested.another_key") == "another_value"
+
+    zettings.set("nested.key", "nested_value")
+    zettings.set("nested.another_key", "another_value")
+    assert zettings.get("nested.key") == "nested_value"
+    assert zettings.get("nested.another_key") == "another_value"
+    del zettings["nested.another_key"]
+    assert zettings.get("nested.key") == "nested_value"
+    assert zettings.get("nested.another_key") is None
+
+
+def test_zettings_delete_with_read_only_true(temp_filepath):
+    zettings = Zettings(name=NAME, filepath=temp_filepath, save_metadata=False)
+    zettings.set("foo", "bar")
+
+    zettings.read_only = True
+    with pytest.raises(ReadOnlyError):
+        del zettings["foo"]
+
+    assert zettings.get("foo") == "bar"
+
+
+def test_get_with_duplicate_keynames(temp_filepath):
     defaults = {
         "key1.test": "value1",
         "key1.subkey.subsubkey": "value2",
@@ -592,7 +230,7 @@ def test_get_with_duplicate_keynames(settings_filepath):
         "key3.subkey.subsubkey": "value6",
     }
 
-    settings = Zettings(filepath=settings_filepath, defaults=defaults)
+    settings = Zettings(name=NAME, filepath=temp_filepath, defaults=defaults)
 
     assert settings.get("key1.test") == "value1"
     assert settings.get("key1.subkey.subsubkey") == "value2"
@@ -616,11 +254,40 @@ def test_get_with_duplicate_keynames(settings_filepath):
     assert settings.get("key3.subkey.subsubkey") == "new_value6"
 
 
-def test_another_invalid_defaults_format(settings_filepath):
-    defaults = {
-        "key1.subkey": "value1",
-        "key1.subkey.subsubkey": "value2",
-    }
-
-    with pytest.raises(MappingError):
-        _ = Zettings(filepath=settings_filepath, defaults=defaults)
+@pytest.mark.parametrize(
+    ("value", "expected_error"),
+    [
+        (
+            {
+                "key1.subkey": "value1",
+                "key1.subkey.subsubkey": "value2",
+            },
+            MappingError,
+        ),
+        (
+            {
+                "settings": {"name": "MyName", "mood": "MyMood"},
+                "dictionary": {
+                    "key1'invalid'": "value1",
+                    "key2": "value2",
+                    "subdictionary": {"key1": "subvalue1", "key2": "subvalue2"},
+                },
+            },
+            InvalidKeyError,
+        ),
+        (
+            {
+                "settings.name": "MyName",
+                "settings.mood": "MyMood",
+                "dictionary.key1": "value1",
+                "dictionary.key2": "value2",
+                "dictionary.subdict'invalidionary.key1": "subvalue1",
+                "dictionary.subdictionary.key2": "subvalue2",
+            },
+            InvalidKeyError,
+        ),
+    ],
+)
+def test_zettings_with_invalid_defaults_format(value, expected_error, temp_filepath):
+    with pytest.raises(expected_error):
+        _ = Zettings(name=NAME, filepath=temp_filepath, defaults=value)

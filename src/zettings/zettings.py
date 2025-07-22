@@ -3,73 +3,68 @@ from __future__ import annotations
 import re
 from collections.abc import MutableMapping
 from datetime import datetime, timezone
+from functools import wraps
 from pathlib import Path
 from threading import Lock
-from typing import Any
+from typing import Annotated, Any
 
 import toml
+from beartype import beartype
+from beartype.roar import BeartypeCallHintParamViolation
+from beartype.vale import Is
 
-from zettings.constants import CREATED_KEY, NOTICE, NOTICE_KEY, UPDATED_KEY
-from zettings.exceptions import KeyNotFoundError, ReadOnlyError
+from zettings.constants import CREATED_KEY, NAME_PATTERN, NOTICE, NOTICE_KEY, UPDATED_KEY
+from zettings.exceptions import KeyNotFoundError, ReadOnlyError, TypeHintError
 from zettings.utils import delete_nested_key, get_nested_value, set_nested_value, validate_dictionary
 
 
+def beartype_wrapper(func: callable) -> callable:
+    @wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
+        try:
+            return func(*args, **kwargs)
+        except BeartypeCallHintParamViolation as cause:
+            raise TypeHintError(cause) from cause
+
+    return wrapper
+
+
 class Zettings(MutableMapping[str, Any]):
+    @beartype_wrapper
+    @beartype
     def __init__(
         self,
-        filepath: str | Path,
+        name: Annotated[str, Is[lambda s: bool(re.compile(NAME_PATTERN).fullmatch(s))]],
         defaults: dict | None = None,
         *,
+        filepath: Path | None = None,
         auto_reload: bool = True,
         read_only: bool = False,
+        save_metadata: bool = True,
     ) -> None:
-        """Initialize the settings manager.
+        """Initialize the settings instance.
 
         Args:
-            filepath (str): Must be in the format '.name/subname.toml'
-                name and subname must be alphanumeric, underscores, or dashes.
-                the '.' in front of name is optional.
-                Examples: 'myproject/settings.toml', '.myproject/settings.toml'.
-
-                When using a str for filepath, the Path object will be created using Path.home() / filepath.
-            filepath (Path): An explicit path to the settings file.
+            name (str): The name of the settings instance.
+            filepath (Path | None): An explicit path to the settings file.
+             When None, the Path object will be created using: Path.home() / f".{name}/settings.toml".
 
             defaults (dict | None, optional): A dictionary of default settings. Defaults to None.
             auto_reload (bool, optional): Whether to always reload settings from file. Defaults to True.
             read_only (bool, optional): If True, disables writing to the settings file. Defaults to False.
-
+            save_metadata (bool, optional): If True, saves metadata to the settings file. Defaults to True.
 
         Raises:
             TypeError: If any argument is of an incorrect type.
             ValueError: If filepath (str) does not match the required format.
 
         """
-        # Validate the arguments
-        if not isinstance(filepath, (str, Path)):
-            error_message = "filepath must be a string or Path"
-            raise TypeError(error_message)
-        if isinstance(filepath, str):
-            if not re.fullmatch(r"^(?:\.)?[a-zA-Z0-9_-]+[\\/]{1}[a-zA-Z0-9_-]+\.toml$", filepath, re.IGNORECASE):
-                error_message = (
-                    "home_filepath must be alphanumeric, underscores, or dashes in format '.name/subname.toml'"
-                )
-                raise ValueError(error_message)
-            self._filepath = Path.home() / filepath
-        else:
-            self._filepath = filepath  # assume Path object
-        if not isinstance(defaults, (dict, type(None))):
-            error_message = "defaults must be a dictionary or None"
-            raise TypeError(error_message)
-        if not isinstance(auto_reload, bool):
-            error_message = "auto_reload must be a boolean"
-            raise TypeError(error_message)
-        if not isinstance(read_only, bool):
-            error_message = "read_only must be a boolean"
-            raise TypeError(error_message)
-
+        self.name = name
+        self._filepath = filepath if filepath else Path.home() / f"./.{name}/settings.toml"
         self.lock = Lock()
         self.auto_reload = auto_reload
         self.read_only = read_only
+        self.save_metadata = save_metadata
         self._data = {}
         if defaults is None:
             defaults = {}
@@ -79,14 +74,21 @@ class Zettings(MutableMapping[str, Any]):
             self._initialize_file()
             self._initialize_defaults(defaults)
 
+    @property
+    def filepath(self) -> Path:
+        """Return the path to the settings file."""
+        return self._filepath
+
     def _initialize_file(self) -> None:
         """Initialize the settings file with metadata values and sets defaults for missing keys."""
         if self._filepath.exists():
             return
         self._filepath.parent.mkdir(parents=True, exist_ok=True)
-        set_nested_value(self._data, NOTICE_KEY, NOTICE)
-        set_nested_value(self._data, CREATED_KEY, datetime.now(tz=timezone.utc).isoformat())
-        set_nested_value(self._data, UPDATED_KEY, datetime.now(tz=timezone.utc).isoformat())
+
+        if self.save_metadata:
+            set_nested_value(self._data, NOTICE_KEY, NOTICE)
+            set_nested_value(self._data, CREATED_KEY, datetime.now(tz=timezone.utc).isoformat())
+            set_nested_value(self._data, UPDATED_KEY, datetime.now(tz=timezone.utc).isoformat())
         self._save()
 
     def _initialize_defaults(self, d: dict, parent_key: str = "") -> None:
@@ -100,7 +102,8 @@ class Zettings(MutableMapping[str, Any]):
 
     def _save(self) -> None:
         """Save the settings to the file and update the updated timestamp."""
-        set_nested_value(self._data, UPDATED_KEY, datetime.now(tz=timezone.utc).isoformat())
+        if self.save_metadata:
+            set_nested_value(self._data, UPDATED_KEY, datetime.now(tz=timezone.utc).isoformat())
         with self.lock, Path.open(self._filepath, mode="w", encoding="utf-8") as f:
             toml.dump(self._data, f)
 
@@ -124,6 +127,8 @@ class Zettings(MutableMapping[str, Any]):
 
         return self.get(key) is not None
 
+    @beartype_wrapper
+    @beartype
     def get(self, key: str, default: Any = None) -> Any | None:  # noqa: ANN401
         """Return a value from the configuration by key.
 
@@ -146,7 +151,9 @@ class Zettings(MutableMapping[str, Any]):
         except KeyNotFoundError:
             return default
 
-    def set(self, key: str, value: Any) -> None:  # noqa: ANN401
+    @beartype_wrapper
+    @beartype
+    def set(self, key: str, value: (int | float | str | bool | list | dict)) -> None:  # noqa: FBT001, PYI041
         """Set a value in the configuration by key.
 
         Args:
@@ -180,7 +187,7 @@ class Zettings(MutableMapping[str, Any]):
         self.set(key, value)
 
     def __repr__(self) -> str:  # noqa: D105
-        return f"Settings stored at: {self._filepath}"
+        return f"Settings `{self.name}`. File stored at: {self._filepath}"
 
     def __delitem__(self, key: str) -> None:
         """Delete an item from the settings by key.
