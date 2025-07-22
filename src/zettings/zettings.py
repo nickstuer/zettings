@@ -9,7 +9,7 @@ from typing import Any
 
 import toml
 
-from zettings.exceptions import ReadOnlyError
+from zettings.exceptions import KeyNotFoundError, ReadOnlyError
 from zettings.utils import delete_nested_key, get_nested_value, set_nested_value, validate_dictionary_keys
 
 # Constants for metadata
@@ -99,7 +99,7 @@ class Settings(MutableMapping[str, Any]):
         """Recursively set default values for missing keys in the settings dictionary."""
         for k, v in d.items():
             full_key = f"{parent_key}.{k}" if parent_key else k
-            if self.get(full_key) is None:
+            if not self.exists(full_key):
                 self.set(full_key, v)
             elif isinstance(v, dict):
                 self._initialize_defaults(v, full_key)
@@ -114,6 +114,24 @@ class Settings(MutableMapping[str, Any]):
         """Load the settings from the file."""
         with self.lock, Path.open(self._filepath, mode="r", encoding="utf-8") as f:
             self._data = toml.load(f)
+
+    def exists(self, key: str) -> bool:
+        """Check if a key exists in the configuration.
+
+        Args:
+        key (str): The key to check for existence.
+
+        Returns:
+        bool: True if the key exists, False otherwise.
+
+        """
+        if self.always_reload:
+            self._load()
+
+        try:
+            return self.get(key)
+        except KeyNotFoundError:
+            return False
 
     def get(self, key: str) -> Any | None:  # noqa: ANN401
         """Return a value from the configuration by key.
