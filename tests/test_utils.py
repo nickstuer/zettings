@@ -3,13 +3,13 @@ from pathlib import Path
 
 import pytest
 
-from zettings.exceptions import InvalidKeyError, KeyNotFoundError, MappingError
+from zettings.exceptions import InvalidKeyError, InvalidValueError, KeyNotFoundError, MappingError
 from zettings.utils import (
-    check_for_valid_key,
     delete_nested_key,
     get_nested_value,
     set_nested_value,
-    validate_dictionary_keys,
+    validate_dictionary,
+    validate_key,
 )
 
 
@@ -27,7 +27,7 @@ def temp_filepath(tmpdir_factory: pytest.TempdirFactory):
     [
         ("DEBUG", True),
         ("debug-mode", True),
-        ("db.host", False),
+        ("db.host", True),
         ('"db.host"', False),
         ("db host", False),
         ("'db host'", False),
@@ -44,14 +44,15 @@ def temp_filepath(tmpdir_factory: pytest.TempdirFactory):
         ('"valid key"', False),
         ('""', False),
         ("", False),
+        ("{}", False),
     ],
 )
 def test_is_valid_key(key, expected):
     if expected:
-        check_for_valid_key(key)
+        validate_key(key)
     else:
         with pytest.raises(InvalidKeyError):
-            check_for_valid_key(key)
+            validate_key(key)
 
 
 def test_get_nested_invalid_key():
@@ -90,6 +91,12 @@ def test_set_nested(initial, key, value, expected):
     d = initial.copy()
     set_nested_value(d, key, value)
     assert d == expected
+
+
+def test_set_unable_to_set_none():
+    d = {"a": {"b": {"c": 1}}}
+    with pytest.raises(InvalidValueError):
+        set_nested_value(d, "a.b.c", None)
 
 
 @pytest.mark.parametrize(
@@ -176,10 +183,16 @@ def test_validate_dictionary():
 
     invalid_dict = {"a": {"b": {"c": 1, "d+": 2}}}
     invalid_dict2 = {"a": True, "b+": True}
+    invalid_dict3 = {"a": {"b": {"c": 1, "d": {"e": None}}}}
+    invalid_dict4 = {"a": True, "b": None}
 
-    validate_dictionary_keys(valid_dict)
-    validate_dictionary_keys(valid_dict2)
+    validate_dictionary(valid_dict)
+    validate_dictionary(valid_dict2)
     with pytest.raises(InvalidKeyError):
-        validate_dictionary_keys(invalid_dict)
+        validate_dictionary(invalid_dict)
     with pytest.raises(InvalidKeyError):
-        validate_dictionary_keys(invalid_dict2)
+        validate_dictionary(invalid_dict2)
+    with pytest.raises(InvalidValueError):
+        validate_dictionary(invalid_dict3)
+    with pytest.raises(InvalidValueError):
+        validate_dictionary(invalid_dict4)

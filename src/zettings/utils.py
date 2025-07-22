@@ -6,7 +6,7 @@ from typing import Any
 from zettings.exceptions import InvalidKeyError, InvalidValueError, KeyNotFoundError, MappingError
 
 
-def check_for_valid_key(key: str) -> None:
+def validate_key(key: str) -> None:
     """Check if a key is valid.
 
     Args:
@@ -21,28 +21,33 @@ def check_for_valid_key(key: str) -> None:
     - Not be empty.
 
     """
-    if not bool(re.fullmatch(r"[A-Za-z0-9_-]+", key)):
-        raise InvalidKeyError(key)
+    keys = key.split(".")
+    for k in keys:
+        if not bool(re.fullmatch(r"[A-Za-z0-9_-]+", k)):
+            raise InvalidKeyError(key)
 
 
-def validate_dictionary_keys(d: dict) -> None:
-    """Validate that all keys in the dictionary are valid.
+def validate_dictionary(d: dict) -> None:
+    """Validate that all keys and values in the dictionary are zettings compatible.
 
     Args:
         d (dict): The dictionary to validate.
 
     Raises:
         InvalidKeyError: If any key in the dictionary is not valid.
+        InvalidValueError: If any value in the dictionary is invalid.
 
     """
     for k, v in d.items():
         for subkey in k.split("."):
-            check_for_valid_key(subkey)
+            validate_key(subkey)
         if isinstance(v, dict):
-            validate_dictionary_keys_loop(v)
+            validate_dictionary_loop(v)
+        if v is None:
+            raise InvalidValueError(k, v)
 
 
-def validate_dictionary_keys_loop(d: dict) -> None:
+def validate_dictionary_loop(d: dict) -> None:
     """Validate that all keys in the dictionary are valid recursively.
 
     Args:
@@ -53,9 +58,11 @@ def validate_dictionary_keys_loop(d: dict) -> None:
 
     """
     for key, value in d.items():
-        check_for_valid_key(key)
+        validate_key(key)
         if isinstance(value, dict):
-            validate_dictionary_keys_loop(value)
+            validate_dictionary_loop(value)
+        if value is None:
+            raise InvalidValueError(key, value)
 
 
 def get_nested_value(d: dict, key: str, sep: str = ".") -> Any:  # noqa: ANN401
@@ -74,10 +81,10 @@ def get_nested_value(d: dict, key: str, sep: str = ".") -> Any:  # noqa: ANN401
         KeyNotFoundError: If the key is not found in the dictionary.
 
     """
-    validate_dictionary_keys(d)
+    validate_dictionary(d)
     keys = key.split(sep)
     for k in keys:
-        check_for_valid_key(k)
+        validate_key(k)
         if isinstance(d, dict) and k in d:
             d = d[k]
         else:
@@ -103,10 +110,10 @@ def set_nested_value(d: dict, key: str, value: Any, sep: str = ".") -> None:  # 
     if value is None:
         raise InvalidValueError(key, value)
 
-    validate_dictionary_keys(d)
+    validate_dictionary(d)
     keys = key.split(sep)
     for k in keys:
-        check_for_valid_key(k)
+        validate_key(k)
 
     for k in keys[:-1]:
         if k not in d:
@@ -132,10 +139,10 @@ def delete_nested_key(d: dict, key: str, sep: str = ".") -> None:
         MappingError: If the key points to a non dictionary value.
 
     """
-    validate_dictionary_keys(d)
+    validate_dictionary(d)
     keys = key.split(sep)
     for k in keys:
-        check_for_valid_key(k)
+        validate_key(k)
 
     for k in keys[:-1]:
         if k not in d:

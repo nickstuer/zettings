@@ -11,7 +11,7 @@ import toml
 
 from zettings.constants import CREATED_KEY, NOTICE, NOTICE_KEY, UPDATED_KEY
 from zettings.exceptions import KeyNotFoundError, ReadOnlyError
-from zettings.utils import delete_nested_key, get_nested_value, set_nested_value, validate_dictionary_keys
+from zettings.utils import delete_nested_key, get_nested_value, set_nested_value, validate_dictionary
 
 
 class Settings(MutableMapping[str, Any]):
@@ -74,7 +74,7 @@ class Settings(MutableMapping[str, Any]):
         if defaults is None:
             defaults = {}
 
-        validate_dictionary_keys(defaults)
+        validate_dictionary(defaults)
         if not self.read_only:
             self._initialize_file()
             self._initialize_defaults(defaults)
