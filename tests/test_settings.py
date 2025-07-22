@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from zettings import Settings
-from zettings.exceptions import InvalidKeyError, KeyNotFoundError, MappingError, ReadOnlyError
+from zettings.exceptions import InvalidKeyError, InvalidValueError, MappingError, ReadOnlyError
 
 default_settings_normal_format = {
     "settings": {"name": "MyName", "mood": "MyMood"},
@@ -88,8 +88,7 @@ def test_settings_initializes_with_empty_file(settings_filepath, key, expected):
     if expected:
         assert settings.get(key) is not None
     else:
-        with pytest.raises(KeyNotFoundError):
-            settings.get(key)
+        assert settings.get(key) is None
 
 
 def test_settings_initializes_with_default_settings_normal_format(settings_filepath):
@@ -230,8 +229,7 @@ def test_settings_filepath_type_fails(value):
 def test_settings_sets_missing_keys_in_defaults(settings_filepath):
     defaults = default_settings_normal_format.copy()
     settings = Settings(filepath=settings_filepath, defaults=defaults)
-    with pytest.raises(KeyNotFoundError):
-        settings.get("foo")
+    assert settings.get("foo") is None
 
     defaults["foo"] = "bar"
     new_settings = Settings(filepath=settings_filepath, defaults=defaults)
@@ -245,7 +243,6 @@ def test_settings_get_and_set_methods_success(settings_filepath):
     settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
 
     settings.set("string", "string_value")
-    settings.set("none", None)
     settings.set("int", 42)
     settings.set("float", 3.14)
     settings.set("bool", True)  # noqa: FBT003
@@ -261,7 +258,6 @@ def test_settings_get_and_set_methods_success(settings_filepath):
     settings.set("emoji", "😊")  # Smiling face emoji
 
     assert settings.get("string") == "string_value"
-    # assert settings.get("none") is None. ToDo: fix in v2, this worked in v1..
     assert settings.get("int") == 42
     assert settings.get("float") == 3.14
     assert settings.get("bool") is True
@@ -275,6 +271,13 @@ def test_settings_get_and_set_methods_success(settings_filepath):
     assert settings.get("complex_nested") == {"outer": {"inner": {"key": "value"}}}
     assert settings.get("unicode") == "こんにちは"
     assert settings.get("emoji") == "😊"
+
+
+def test_unable_to_set_none_to_value(settings_filepath):
+    settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
+
+    with pytest.raises(InvalidValueError):
+        settings.set("settings.name", None)
 
 
 def test_settings_overrides_existing_settings(settings_filepath):
@@ -292,8 +295,7 @@ def test_settings_overrides_existing_settings(settings_filepath):
 def test_settings_handles_non_existent_keys(settings_filepath):
     settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
 
-    with pytest.raises(KeyNotFoundError):
-        settings.get("non_existent_key")
+    assert settings.get("non_existent_key") is None
 
 
 def test_settings_handles_empty_settings_file(settings_filepath):
@@ -335,8 +337,7 @@ def test_settings_with_different_cases_in_key(settings_filepath):
 
     assert settings["caseCheck"] == "value"
 
-    with pytest.raises(KeyNotFoundError):
-        settings["casecheck"]
+    assert settings.get("casecheck") is None
 
 
 def test_settings_no_default_settings(settings_filepath):
@@ -344,8 +345,7 @@ def test_settings_no_default_settings(settings_filepath):
     settings = Settings(filepath=settings_filepath)
 
     # Check that no settings are set initially
-    with pytest.raises(KeyNotFoundError):
-        settings.get("name")
+    assert settings.get("name") is None
 
     # Set a value and check if it persists
     settings.set("name", "NoDefaultName")
@@ -375,10 +375,8 @@ def test_settings_with_getitem_and_setitem(settings_filepath):
 def test_settings_updates_defaults_with_nested_dict(settings_filepath: Path):
     defaults = default_settings_nested_format.copy()
     settings = Settings(filepath=settings_filepath, defaults=defaults)
-    with pytest.raises(KeyNotFoundError):
-        settings.get("dictionary.subdictionary.key3")
-    with pytest.raises(KeyNotFoundError):
-        settings["dictionary.subdictionary.key3"]
+    assert settings.get("dictionary.subdictionary.key3") is None
+    assert settings["dictionary.subdictionary.key3"] is None
 
     defaults["dictionary.subdictionary.key3"] = "subvalue3"
 
@@ -404,8 +402,7 @@ def test_settings_sets_default_settings_of_nested_dictionaries_if_not_present(se
     settings = Settings(filepath=settings_filepath, defaults=default_settings_nested_format)
     assert settings.get("settings.mood") == "MyMood"
 
-    with pytest.raises(KeyNotFoundError):
-        settings.get("settings.face")
+    assert settings.get("settings.face") is None
 
     new_default_settings = default_settings_nested_format.copy()
     new_default_settings["settings.face"] = "round"
@@ -552,8 +549,7 @@ def test_settings_del_method(settings_filepath):
     assert settings.get("newkey") == "newkeyvalue"
     del settings["newkey"]
 
-    with pytest.raises(KeyNotFoundError):
-        settings.get("newkey")
+    assert settings.get("newkey") is None
 
     # Test Nested Key Deletion
     settings.set("nested.key", "nested_value")
@@ -562,8 +558,7 @@ def test_settings_del_method(settings_filepath):
     assert settings.get("nested.another_key") == "another_value"
 
     del settings["nested.key"]
-    with pytest.raises(KeyNotFoundError):
-        settings.get("nested.key")
+    assert settings.get("nested.key") is None
     assert settings.get("nested.another_key") == "another_value"
 
     settings.set("nested.key", "nested_value")
@@ -572,8 +567,7 @@ def test_settings_del_method(settings_filepath):
     assert settings.get("nested.another_key") == "another_value"
     del settings["nested.another_key"]
     assert settings.get("nested.key") == "nested_value"
-    with pytest.raises(KeyNotFoundError):
-        settings.get("nested.another_key")
+    assert settings.get("nested.another_key") is None
 
 
 def test_settings_delete_with_read_only_true(settings_filepath):

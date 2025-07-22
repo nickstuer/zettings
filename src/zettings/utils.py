@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from zettings.exceptions import InvalidKeyError, KeyNotFoundError, MappingError
+from zettings.exceptions import InvalidKeyError, InvalidValueError, KeyNotFoundError, MappingError
 
 
 def check_for_valid_key(key: str) -> None:
@@ -100,6 +100,9 @@ def set_nested_value(d: dict, key: str, value: Any, sep: str = ".") -> None:  # 
         MappingError: If the key points to a non dictionary value.
 
     """
+    if value is None:
+        raise InvalidValueError(key, value)
+
     validate_dictionary_keys(d)
     keys = key.split(sep)
     for k in keys:

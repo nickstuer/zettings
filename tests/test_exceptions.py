@@ -1,5 +1,6 @@
 from zettings.exceptions import (
     InvalidKeyError,
+    InvalidValueError,
     KeyNotFoundError,
     MappingError,
     ReadOnlyError,
@@ -12,6 +13,7 @@ def test_zettings_errors_inherit_zettings_error():
     assert issubclass(KeyNotFoundError, ZettingsError)
     assert issubclass(MappingError, ZettingsError)
     assert issubclass(ReadOnlyError, ZettingsError)
+    assert issubclass(InvalidValueError, ZettingsError)
 
 
 def test_zettings_error_inherits_base_exception():

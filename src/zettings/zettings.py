@@ -128,24 +128,29 @@ class Settings(MutableMapping[str, Any]):
         if self.always_reload:
             self._load()
 
-        try:
-            return self.get(key)
-        except KeyNotFoundError:
-            return False
+        return self.get(key) is not None
 
-    def get(self, key: str) -> Any | None:  # noqa: ANN401
+    def get(self, key: str, default: Any = None) -> Any | None:  # noqa: ANN401
         """Return a value from the configuration by key.
 
         Args:
         key (str): The key to return a value from.
+        default (Any | None): The default value to return if the key does not exist. Defaults to None.
 
         Returns:
-        Any | None: The value associated with the key, or None if the key does not exist.
+        Any | None: The value associated with the key, or `default` if the key does not exist.
+
+        Raises:
+        KeyNotValidError: If the key is not valid.
 
         """
         if self.always_reload:
             self._load()
-        return get_nested_value(self._data, key)
+
+        try:
+            return get_nested_value(self._data, key)
+        except KeyNotFoundError:
+            return default
 
     def set(self, key: str, value: Any) -> None:  # noqa: ANN401
         """Set a value in the configuration by key.
@@ -156,6 +161,11 @@ class Settings(MutableMapping[str, Any]):
 
         Returns:
         None
+
+        Raises:
+        InvalidKeyError: If the key is not valid.
+        InvalidValueError: If the value is None.
+        MappingError: If the key points to a non dictionary value.
 
         """
         if self.read_only:

@@ -1,3 +1,6 @@
+from typing import Any
+
+
 class ZettingsError(Exception):
     """Base class for all zettings specific errors."""
 
@@ -32,3 +35,12 @@ class ReadOnlyError(ZettingsError):
     def __init__(self, message: str = "Settings are in read only mode and cannot be modified."):
         super().__init__(message)
         self.message = message
+
+
+class InvalidValueError(ZettingsError):
+    """Raised when a value is invalid."""
+
+    def __init__(self, key: str, value: Any):  # noqa: ANN401
+        super().__init__(f"Invalid value '{value}' for key '{key}'.")
+        self.key = key
+        self.value = value
