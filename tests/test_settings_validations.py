@@ -2,7 +2,6 @@ from pathlib import Path
 
 import pytest
 
-from tests.constants import DEFAULTS_NESTED, DEFAULTS_NORMAL, NAME
 from zettings import Zettings
 from zettings.exceptions import TypeHintError
 
@@ -46,16 +45,17 @@ def test_zettings_init_validates_name(value, expected_error, temp_filepath):
         ([], TypeHintError),
         ({}, None),
         (Path(), TypeHintError),
-        (DEFAULTS_NORMAL, None),
-        (DEFAULTS_NESTED, None),
     ],
 )
-def test_zettings_init_validates_defaults(value, expected_error, temp_filepath):
+def test_zettings_init_validates_defaults(test_constants, value, expected_error, temp_filepath):
     if expected_error:
         with pytest.raises(expected_error):
-            Zettings(name=NAME, filepath=temp_filepath, defaults=value)
+            Zettings(name=test_constants.NAME, filepath=temp_filepath, defaults=value)
     else:
-        Zettings(name=NAME, filepath=temp_filepath, defaults=value)
+        Zettings(name=test_constants.NAME, filepath=temp_filepath, defaults=value)
+
+    _ = Zettings(name=test_constants.NAME, filepath=temp_filepath, defaults=test_constants.DEFAULTS_NORMAL)
+    _ = Zettings(name=test_constants.NAME, filepath=temp_filepath, defaults=test_constants.DEFAULTS_NESTED)
 
 
 @pytest.mark.parametrize(
@@ -73,12 +73,12 @@ def test_zettings_init_validates_defaults(value, expected_error, temp_filepath):
     ],
 )
 @pytest.mark.parametrize(("name"), ["read_only", "auto_reload"])
-def test_zettings_init_validates_optional_bools(name, value, expected_error, temp_filepath):
+def test_zettings_init_validates_optional_bools(test_constants, name, value, expected_error, temp_filepath):
     if expected_error:
         with pytest.raises(expected_error):
-            Zettings(name=NAME, filepath=temp_filepath, **{name: value})
+            Zettings(name=test_constants.NAME, filepath=temp_filepath, **{name: value})
     else:
-        Zettings(name=NAME, filepath=temp_filepath, **{name: value})
+        Zettings(name=test_constants.NAME, filepath=temp_filepath, **{name: value})
 
 
 @pytest.mark.parametrize(
@@ -96,13 +96,13 @@ def test_zettings_init_validates_optional_bools(name, value, expected_error, tem
         (Path.home() / ".test-settings/settings.toml", None),
     ],
 )
-def test_zettings_init_validates_filepath(value, expected_error, temp_filepath):
+def test_zettings_init_validates_filepath(test_constants, value, expected_error, temp_filepath):
     # ensure read_only is True to avoid file creation
     if expected_error:
         with pytest.raises(expected_error):
-            _ = Zettings(name=NAME, filepath=value, read_only=True)
+            _ = Zettings(name=test_constants.NAME, filepath=value, read_only=True)
     else:
-        _ = Zettings(name=NAME, filepath=temp_filepath, read_only=True)
+        _ = Zettings(name=test_constants.NAME, filepath=temp_filepath, read_only=True)
 
 
 @pytest.mark.parametrize(
@@ -133,8 +133,8 @@ def test_zettings_init_validates_filepath(value, expected_error, temp_filepath):
         (Path(), Path(), TypeHintError),
     ],
 )
-def test_zettings_validates_get(key, value, expected_error, temp_filepath):
-    zettings = Zettings(name=NAME, filepath=temp_filepath, auto_reload=False, read_only=True)
+def test_zettings_validates_get(test_constants, key, value, expected_error, temp_filepath):
+    zettings = Zettings(name=test_constants.NAME, filepath=temp_filepath, auto_reload=False, read_only=True)
 
     if expected_error:
         with pytest.raises(expected_error):
@@ -173,8 +173,8 @@ def test_zettings_validates_get(key, value, expected_error, temp_filepath):
         (Path(), Path(), TypeHintError),
     ],
 )
-def test_zettings_validates_set(temp_filepath, key, value, expected_error):
-    zettings = Zettings(name=NAME, filepath=temp_filepath, auto_reload=False)
+def test_zettings_validates_set(test_constants, temp_filepath, key, value, expected_error):
+    zettings = Zettings(name=test_constants.NAME, filepath=temp_filepath, auto_reload=False)
     if expected_error:
         with pytest.raises(expected_error):
             zettings.set(key, value)
@@ -183,13 +183,13 @@ def test_zettings_validates_set(temp_filepath, key, value, expected_error):
         assert zettings._data[key] == value  # noqa: SLF001
 
 
-def test_zettings_auto_reload_is_true_by_default(temp_filepath):
-    zettings = Zettings(name=NAME, filepath=temp_filepath)
+def test_zettings_auto_reload_is_true_by_default(test_constants, temp_filepath):
+    zettings = Zettings(name=test_constants.NAME, filepath=temp_filepath)
     assert zettings.auto_reload is True
 
 
-def test_zettings_read_only_is_false_by_default(temp_filepath):
-    zettings = Zettings(name=NAME, filepath=temp_filepath)
+def test_zettings_read_only_is_false_by_default(test_constants, temp_filepath):
+    zettings = Zettings(name=test_constants.NAME, filepath=temp_filepath)
     assert zettings.read_only is False
 
 
