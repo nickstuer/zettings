@@ -4,7 +4,13 @@ from pathlib import Path
 import pytest
 
 from zettings.exceptions import InvalidKeyError, KeyNotFoundError, MappingError
-from zettings.utils import delete_nested_key, get_nested_value, is_valid_key, set_nested_value, validate_dictionary
+from zettings.utils import (
+    check_for_valid_key,
+    delete_nested_key,
+    get_nested_value,
+    set_nested_value,
+    validate_dictionary,
+)
 
 
 @pytest.fixture
@@ -41,7 +47,11 @@ def temp_filepath(tmpdir_factory: pytest.TempdirFactory):
     ],
 )
 def test_is_valid_key(key, expected):
-    assert is_valid_key(key) == expected
+    if expected:
+        check_for_valid_key(key)
+    else:
+        with pytest.raises(InvalidKeyError):
+            check_for_valid_key(key)
 
 
 def test_get_nested_invalid_key():
