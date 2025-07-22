@@ -3,30 +3,18 @@ from __future__ import annotations
 import re
 from collections.abc import MutableMapping
 from datetime import datetime, timezone
-from functools import wraps
 from pathlib import Path
 from threading import Lock
 from typing import Annotated, Any
 
 import toml
 from beartype import beartype
-from beartype.roar import BeartypeCallHintParamViolation
 from beartype.vale import Is
 
 from zettings.constants import CREATED_KEY, NAME_PATTERN, NOTICE, NOTICE_KEY, UPDATED_KEY
-from zettings.exceptions import KeyNotFoundError, ReadOnlyError, TypeHintError
+from zettings.decorators import beartype_wrapper
+from zettings.exceptions import KeyNotFoundError, ReadOnlyError
 from zettings.utils import delete_nested_key, get_nested_value, set_nested_value, validate_dictionary
-
-
-def beartype_wrapper(func: callable) -> callable:
-    @wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
-        try:
-            return func(*args, **kwargs)
-        except BeartypeCallHintParamViolation as cause:
-            raise TypeHintError(cause) from cause
-
-    return wrapper
 
 
 class Zettings(MutableMapping[str, Any]):
