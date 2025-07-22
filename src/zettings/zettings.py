@@ -14,7 +14,7 @@ from zettings.exceptions import KeyNotFoundError, ReadOnlyError
 from zettings.utils import delete_nested_key, get_nested_value, set_nested_value, validate_dictionary
 
 
-class Settings(MutableMapping[str, Any]):
+class Zettings(MutableMapping[str, Any]):
     def __init__(
         self,
         filepath: str | Path,

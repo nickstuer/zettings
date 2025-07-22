@@ -1,3 +1,3 @@
-from zettings.zettings import Settings
+from zettings.zettings import Zettings
 
-__all__ = ["Settings"]
+__all__ = ["Zettings"]

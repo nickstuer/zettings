@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from zettings import Settings
+from zettings import Zettings
 from zettings.exceptions import InvalidKeyError, InvalidValueError, MappingError, ReadOnlyError
 
 default_settings_normal_format = {
@@ -83,7 +83,7 @@ def temp_home():
     ],
 )
 def test_settings_initializes_with_empty_file(settings_filepath, key, expected):
-    settings = Settings(settings_filepath)
+    settings = Zettings(settings_filepath)
 
     if expected:
         assert settings.get(key) is not None
@@ -92,7 +92,7 @@ def test_settings_initializes_with_empty_file(settings_filepath, key, expected):
 
 
 def test_settings_initializes_with_default_settings_normal_format(settings_filepath):
-    settings = Settings(settings_filepath, defaults=default_settings_normal_format)
+    settings = Zettings(settings_filepath, defaults=default_settings_normal_format)
     for k, v in default_settings_normal_format.items():
         assert settings.get(k) == v
 
@@ -107,7 +107,7 @@ def test_settings_initializes_with_default_settings_normal_format(settings_filep
 
 
 def test_settings_initializes_with_default_settings_nested_format(settings_filepath):
-    settings = Settings(settings_filepath, defaults=default_settings_nested_format)
+    settings = Zettings(settings_filepath, defaults=default_settings_nested_format)
     for k, v in default_settings_nested_format.items():
         assert settings.get(k) == v
 
@@ -133,7 +133,7 @@ def test_settings_initializes_with_default_settings_nested_format(settings_filep
 )
 def test_settings_name_type_fails(value):
     with pytest.raises(TypeError):
-        _ = Settings(value, read_only=True)
+        _ = Zettings(value, read_only=True)
 
 
 @pytest.mark.parametrize(
@@ -152,7 +152,7 @@ def test_settings_name_type_fails(value):
 )
 def test_settings_name_alphanumericish_fails(value):
     with pytest.raises(ValueError):  # noqa: PT011
-        Settings(value, read_only=True)
+        Zettings(value, read_only=True)
 
 
 @pytest.mark.parametrize(
@@ -168,7 +168,7 @@ def test_settings_name_alphanumericish_fails(value):
     ],
 )
 def test_settings_name_alphanumericish_passes(value):
-    _ = Settings(value, read_only=True)
+    _ = Zettings(value, read_only=True)
 
 
 @pytest.mark.parametrize(
@@ -180,7 +180,7 @@ def test_settings_name_alphanumericish_passes(value):
 )
 def test_settings_defaults_type_fails(settings_filepath, value):
     with pytest.raises(TypeError):
-        _ = Settings(filepath=settings_filepath, defaults=value)
+        _ = Zettings(filepath=settings_filepath, defaults=value)
 
 
 @pytest.mark.parametrize(
@@ -194,7 +194,7 @@ def test_settings_defaults_type_fails(settings_filepath, value):
 )
 def test_settings_auto_reloads_type_fails(settings_filepath, value):
     with pytest.raises(TypeError):
-        _ = Settings(filepath=settings_filepath, defaults=value, auto_reload=value)
+        _ = Zettings(filepath=settings_filepath, defaults=value, auto_reload=value)
 
 
 @pytest.mark.parametrize(
@@ -208,7 +208,7 @@ def test_settings_auto_reloads_type_fails(settings_filepath, value):
 )
 def test_settings_read_only_type_fails(settings_filepath, value):
     with pytest.raises(TypeError):
-        _ = Settings(filepath=settings_filepath, defaults=value, read_only=value)
+        _ = Zettings(filepath=settings_filepath, defaults=value, read_only=value)
 
 
 @pytest.mark.parametrize(
@@ -222,17 +222,17 @@ def test_settings_read_only_type_fails(settings_filepath, value):
 )
 def test_settings_filepath_type_fails(value):
     with pytest.raises(TypeError):
-        _ = Settings(filepath=value)
+        _ = Zettings(filepath=value)
 
 
 ## End Type Tests
 def test_settings_sets_missing_keys_in_defaults(settings_filepath):
     defaults = default_settings_normal_format.copy()
-    settings = Settings(filepath=settings_filepath, defaults=defaults)
+    settings = Zettings(filepath=settings_filepath, defaults=defaults)
     assert settings.get("foo") is None
 
     defaults["foo"] = "bar"
-    new_settings = Settings(filepath=settings_filepath, defaults=defaults)
+    new_settings = Zettings(filepath=settings_filepath, defaults=defaults)
 
     assert new_settings.get("foo") == "bar"
     for k, v in defaults.items():
@@ -240,7 +240,7 @@ def test_settings_sets_missing_keys_in_defaults(settings_filepath):
 
 
 def test_settings_get_and_set_methods_success(settings_filepath):
-    settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
+    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
 
     settings.set("string", "string_value")
     settings.set("int", 42)
@@ -274,14 +274,14 @@ def test_settings_get_and_set_methods_success(settings_filepath):
 
 
 def test_unable_to_set_none_to_value(settings_filepath):
-    settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
+    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
 
     with pytest.raises(InvalidValueError):
         settings.set("settings.name", None)
 
 
 def test_settings_overrides_existing_settings(settings_filepath):
-    settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
+    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
 
     # Set an initial value
     settings.set("name", "InitialName")
@@ -293,7 +293,7 @@ def test_settings_overrides_existing_settings(settings_filepath):
 
 
 def test_settings_handles_non_existent_keys(settings_filepath):
-    settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
+    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
 
     assert settings.get("non_existent_key") is None
 
@@ -303,7 +303,7 @@ def test_settings_handles_empty_settings_file(settings_filepath):
     settings_filepath.parent.mkdir(parents=True, exist_ok=True)
     with Path.open(settings_filepath, "w") as f:
         f.write("")
-    settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
+    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
     # Check that default settings are applied
     for k, v in default_settings_normal_format.items():
         assert settings.get(k) == v
@@ -314,25 +314,25 @@ def test_settings_handles_creating_directories_for_new_files(settings_filepath):
 
     assert not parent_dir.exists(), "Parent directory should not exist before test"
 
-    _ = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
+    _ = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
     assert parent_dir.exists(), "Parent directory should be created by Settings class"
 
 
 def test_settings_saves_settings_to_file(settings_filepath):
-    settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
+    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
 
     # Set some values
     settings.set("name", "TestName")
     settings.set("mood", "TestMood")
 
     # Reload the settings to check if values are saved
-    new_settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
+    new_settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
     assert new_settings.get("name") == "TestName"
     assert new_settings.get("mood") == "TestMood"
 
 
 def test_settings_with_different_cases_in_key(settings_filepath):
-    settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
+    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
     settings["caseCheck"] = "value"
 
     assert settings["caseCheck"] == "value"
@@ -342,7 +342,7 @@ def test_settings_with_different_cases_in_key(settings_filepath):
 
 def test_settings_no_default_settings(settings_filepath):
     # Test with no default settings
-    settings = Settings(filepath=settings_filepath)
+    settings = Zettings(filepath=settings_filepath)
 
     # Check that no settings are set initially
     assert settings.get("name") is None
@@ -352,12 +352,12 @@ def test_settings_no_default_settings(settings_filepath):
     assert settings.get("name") == "NoDefaultName"
 
     # Reload the settings to check if the value is saved
-    new_settings = Settings(filepath=settings_filepath)
+    new_settings = Zettings(filepath=settings_filepath)
     assert new_settings.get("name") == "NoDefaultName"
 
 
 def test_settings_with_getitem_and_setitem(settings_filepath):
-    settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
+    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
 
     # Test __getitem__
     assert settings["settings.name"] == "MyName"
@@ -374,20 +374,20 @@ def test_settings_with_getitem_and_setitem(settings_filepath):
 
 def test_settings_updates_defaults_with_nested_dict(settings_filepath: Path):
     defaults = default_settings_nested_format.copy()
-    settings = Settings(filepath=settings_filepath, defaults=defaults)
+    settings = Zettings(filepath=settings_filepath, defaults=defaults)
     assert settings.get("dictionary.subdictionary.key3") is None
     assert settings["dictionary.subdictionary.key3"] is None
 
     defaults["dictionary.subdictionary.key3"] = "subvalue3"
 
     # Access a nested value
-    new_settings = Settings(filepath=settings_filepath, defaults=defaults)
+    new_settings = Zettings(filepath=settings_filepath, defaults=defaults)
     assert new_settings.get("dictionary.subdictionary.key3") == "subvalue3"
     assert new_settings["dictionary"]["subdictionary"]["key3"] == "subvalue3"
 
 
 def test_settings_initializes_defaults_with_nested_dict(settings_filepath):
-    settings = Settings(filepath=settings_filepath, defaults=default_settings_nested_format)
+    settings = Zettings(filepath=settings_filepath, defaults=default_settings_nested_format)
     assert settings.get("settings.name") == "MyName"
     assert settings.get("settings.mood") == "MyMood"
     assert settings["settings"]["name"] == "MyName"
@@ -399,7 +399,7 @@ def test_settings_initializes_defaults_with_nested_dict(settings_filepath):
 
 
 def test_settings_sets_default_settings_of_nested_dictionaries_if_not_present(settings_filepath):
-    settings = Settings(filepath=settings_filepath, defaults=default_settings_nested_format)
+    settings = Zettings(filepath=settings_filepath, defaults=default_settings_nested_format)
     assert settings.get("settings.mood") == "MyMood"
 
     assert settings.get("settings.face") is None
@@ -407,19 +407,19 @@ def test_settings_sets_default_settings_of_nested_dictionaries_if_not_present(se
     new_default_settings = default_settings_nested_format.copy()
     new_default_settings["settings.face"] = "round"
 
-    new_settings = Settings(filepath=settings_filepath, defaults=new_default_settings)
+    new_settings = Zettings(filepath=settings_filepath, defaults=new_default_settings)
 
     assert settings.get("settings.face") == "round"
     assert new_settings.get("settings.face") == "round"
 
 
 def test_settings_auto_reload_true(settings_filepath):
-    settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
+    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
 
     assert settings.get("settings.name") == "MyName"
 
     # Change the settings file seperatrely
-    settings2 = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
+    settings2 = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
     settings2.set("settings.name", "NewName")
 
     # Verify that the change is reflected in the original settings object
@@ -427,23 +427,23 @@ def test_settings_auto_reload_true(settings_filepath):
 
 
 def test_settings_auto_reload_false(settings_filepath):
-    settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
+    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
     settings.auto_reload = False
 
     assert settings.get("settings.name") == "MyName"
 
     # Change the settings file seperatrely
-    settings2 = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
+    settings2 = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
     settings2.set("settings.name", "NewName")
 
 
 def test_settings_dynamic_reload_true_set(settings_filepath):
-    settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
+    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
 
     assert settings.get("settings.name") == "MyName"
 
     # Change the settings file seperatrely
-    settings2 = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
+    settings2 = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
     settings2.set("settings.name", "NewName3")
 
     # Verify that the change is reflected in the original settings object
@@ -452,13 +452,13 @@ def test_settings_dynamic_reload_true_set(settings_filepath):
 
 
 def test_settings_dynamic_reload_false_set(settings_filepath):
-    settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
+    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
     settings.auto_reload = False
 
     assert settings.get("settings.name") == "MyName"
 
     # Change the settings file seperatrely
-    settings2 = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
+    settings2 = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
     settings2.set("settings.name", "NewName3")
 
     # Verify that the change is reflected in the original settings object
@@ -470,7 +470,7 @@ def test_settings_dynamic_reload_false_set(settings_filepath):
 
 
 def test_settings_read_only_true(settings_filepath):
-    settings = Settings(
+    settings = Zettings(
         filepath=settings_filepath,
         defaults=default_settings_normal_format,
         read_only=True,
@@ -483,7 +483,7 @@ def test_settings_read_only_true(settings_filepath):
 
 # Verify that the change is reflected in the original settings object
 def test_settings_repr_returns_expected_string(settings_filepath):
-    settings = Settings(
+    settings = Zettings(
         filepath=settings_filepath,
         defaults=default_settings_normal_format,
     )
@@ -492,27 +492,27 @@ def test_settings_repr_returns_expected_string(settings_filepath):
 
 
 def test_settings_stores_in_home_directory_if_no_filepath(temp_home):
-    _ = Settings(temp_home["name"])
+    _ = Zettings(temp_home["name"])
     assert temp_home["path"].exists() is True
 
 
 def test_settings_fails_with_invalid_defaults_format(settings_filepath):
     with pytest.raises(InvalidKeyError):
-        Settings(filepath=settings_filepath, defaults=default_settings_invalid_normal_format)
+        Zettings(filepath=settings_filepath, defaults=default_settings_invalid_normal_format)
 
     # Verify that the settings file is not created
     assert not settings_filepath.exists()
 
     with pytest.raises(InvalidKeyError):
-        Settings(filepath=settings_filepath, defaults=default_settings_invalid_nested_format)
+        Zettings(filepath=settings_filepath, defaults=default_settings_invalid_nested_format)
 
     # Verify that the settings file is not created
     assert not settings_filepath.exists()
 
 
 def test_settings_iter_and_len_method_with_reload_true(settings_filepath):
-    settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format, auto_reload=True)
-    settings2 = Settings(filepath=settings_filepath, defaults=default_settings_normal_format, auto_reload=False)
+    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format, auto_reload=True)
+    settings2 = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format, auto_reload=False)
 
     settings2.set("newkey", "newkeyvalue")
 
@@ -528,8 +528,8 @@ def test_settings_iter_and_len_method_with_reload_true(settings_filepath):
 
 
 def test_settings_iter_and_len_method_with_reload_false(settings_filepath):
-    settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format, auto_reload=False)
-    settings2 = Settings(filepath=settings_filepath, defaults=default_settings_normal_format, auto_reload=False)
+    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format, auto_reload=False)
+    settings2 = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format, auto_reload=False)
 
     settings2.set("newkey", "newkeyvalue")
 
@@ -543,7 +543,7 @@ def test_settings_iter_and_len_method_with_reload_false(settings_filepath):
 
 
 def test_settings_del_method(settings_filepath):
-    settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
+    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
 
     settings.set("newkey", "newkeyvalue")
     assert settings.get("newkey") == "newkeyvalue"
@@ -571,7 +571,7 @@ def test_settings_del_method(settings_filepath):
 
 
 def test_settings_delete_with_read_only_true(settings_filepath):
-    settings = Settings(filepath=settings_filepath, defaults=default_settings_normal_format)
+    settings = Zettings(filepath=settings_filepath, defaults=default_settings_normal_format)
 
     settings.read_only = True
     with pytest.raises(ReadOnlyError):
@@ -592,7 +592,7 @@ def test_get_with_duplicate_keynames(settings_filepath):
         "key3.subkey.subsubkey": "value6",
     }
 
-    settings = Settings(filepath=settings_filepath, defaults=defaults)
+    settings = Zettings(filepath=settings_filepath, defaults=defaults)
 
     assert settings.get("key1.test") == "value1"
     assert settings.get("key1.subkey.subsubkey") == "value2"
@@ -623,4 +623,4 @@ def test_another_invalid_defaults_format(settings_filepath):
     }
 
     with pytest.raises(MappingError):
-        _ = Settings(filepath=settings_filepath, defaults=defaults)
+        _ = Zettings(filepath=settings_filepath, defaults=defaults)
