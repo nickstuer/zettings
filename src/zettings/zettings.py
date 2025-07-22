@@ -15,8 +15,6 @@ from zettings.utils import delete_nested_key, get_nested_value, set_nested_value
 
 
 class Settings(MutableMapping[str, Any]):
-    lock = Lock()
-
     def __init__(
         self,
         filepath: str | Path,
@@ -69,6 +67,7 @@ class Settings(MutableMapping[str, Any]):
             error_message = "read_only must be a boolean"
             raise TypeError(error_message)
 
+        self.lock = Lock()
         self.auto_reload = auto_reload
         self.read_only = read_only
         self._data = {}
