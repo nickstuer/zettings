@@ -6,7 +6,7 @@ authors = [
 ]
 description = "A configuration/settings utility that that exposes project settings as standard Python dictionaries."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "beartype>=0.21.0",
     "toml>=0.10.2",
