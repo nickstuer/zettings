@@ -14,9 +14,9 @@ from zettings.constants import CREATED_KEY, NAME_PATTERN, NOTICE, NOTICE_KEY, UP
 from zettings.decorators import beartype_wrapper
 from zettings.exceptions import ConflictingParametersError, KeyNotFoundError, ReadOnlyError
 from zettings.utils.dict_utils import (
-    delete_nested_key,
-    get_nested_value,
-    set_nested_value,
+    del_dotted_key,
+    get_dotted_key,
+    set_dotted_key,
 )
 from zettings.utils.validation_utils import (
     is_exact_regex_match,
@@ -91,9 +91,9 @@ class Zettings(MutableMapping[str, Any]):
         self._filepath.parent.mkdir(parents=True, exist_ok=True)
 
         if self.save_metadata:
-            set_nested_value(self._data, NOTICE_KEY, NOTICE)
-            set_nested_value(self._data, CREATED_KEY, datetime.now(tz=timezone.utc).isoformat())
-            set_nested_value(self._data, UPDATED_KEY, datetime.now(tz=timezone.utc).isoformat())
+            set_dotted_key(self._data, NOTICE_KEY, NOTICE)
+            set_dotted_key(self._data, CREATED_KEY, datetime.now(tz=timezone.utc).isoformat())
+            set_dotted_key(self._data, UPDATED_KEY, datetime.now(tz=timezone.utc).isoformat())
         self._save()
 
     def _initialize_defaults(self, d: dict, parent_key: str = "") -> None:
@@ -108,7 +108,7 @@ class Zettings(MutableMapping[str, Any]):
     def _save(self) -> None:
         """Save the settings to the file and update the updated timestamp."""
         if self.save_metadata:
-            set_nested_value(self._data, UPDATED_KEY, datetime.now(tz=timezone.utc).isoformat())
+            set_dotted_key(self._data, UPDATED_KEY, datetime.now(tz=timezone.utc).isoformat())
 
         if self.ram_only:
             return
@@ -157,7 +157,7 @@ class Zettings(MutableMapping[str, Any]):
             self._load()
 
         try:
-            return get_nested_value(self._data, key)
+            return get_dotted_key(self._data, key)
         except KeyNotFoundError:
             return default
 
@@ -185,7 +185,7 @@ class Zettings(MutableMapping[str, Any]):
         if self.auto_reload:
             self._load()
 
-        set_nested_value(self._data, key, value)
+        set_dotted_key(self._data, key, value)
         self._save()
 
     def __getitem__(self, key: str) -> Any | None:  # noqa: ANN401
@@ -219,7 +219,7 @@ class Zettings(MutableMapping[str, Any]):
         if self.auto_reload:
             self._load()
 
-        delete_nested_key(self._data, key)
+        del_dotted_key(self._data, key)
         self._save()
 
     def __iter__(self):

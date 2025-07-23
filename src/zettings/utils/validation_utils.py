@@ -10,6 +10,11 @@ def is_exact_regex_match(string: str, regex_pattern: str) -> bool:
     return bool(re.fullmatch(regex_pattern, string))
 
 
+def is_valid_key(key: str) -> bool:
+    """Check if a key is valid according to the zettings rules."""
+    return all(re.fullmatch(r"[A-Za-z0-9_-]+", k) for k in key.split("."))
+
+
 def validate_key(key: str) -> None:
     """Check if a key is valid.
 
