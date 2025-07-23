@@ -290,3 +290,11 @@ def test_get_with_duplicate_keynames(test_constants, temp_filepath):
 def test_zettings_with_invalid_defaults_format(test_constants, value, expected_error, temp_filepath):
     with pytest.raises(expected_error):
         _ = Zettings(name=test_constants.NAME, filepath=temp_filepath, defaults=value)
+
+
+def test_able_to_get_but_not_set_filepath(test_constants, temp_filepath):
+    zettings = Zettings(name=test_constants.NAME, filepath=temp_filepath, save_metadata=False)
+
+    assert zettings.filepath == temp_filepath
+    with pytest.raises(AttributeError):
+        zettings.filepath = None

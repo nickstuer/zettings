@@ -4,10 +4,12 @@ from pathlib import Path
 import pytest
 
 from zettings.exceptions import InvalidKeyError, InvalidValueError, KeyNotFoundError, MappingError
-from zettings.utils import (
+from zettings.utils.dict_utils import (
     delete_nested_key,
     get_nested_value,
     set_nested_value,
+)
+from zettings.utils.validation_utils import (
     validate_dictionary,
     validate_key,
 )

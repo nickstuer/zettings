@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from zettings import Zettings
-from zettings.exceptions import TypeHintError
+from zettings.exceptions import ConflictingParametersError, TypeHintError
 
 
 @pytest.mark.parametrize(
@@ -191,6 +191,16 @@ def test_zettings_auto_reload_is_true_by_default(test_constants, temp_filepath):
 def test_zettings_read_only_is_false_by_default(test_constants, temp_filepath):
     zettings = Zettings(name=test_constants.NAME, filepath=temp_filepath)
     assert zettings.read_only is False
+
+
+def test_zettings_ram_only_is_false_by_default(test_constants, temp_filepath):
+    zettings = Zettings(name=test_constants.NAME, filepath=temp_filepath)
+    assert zettings.ram_only is False
+
+
+def test_zettings_init_cannot_set_filepath_when_ram_only(test_constants, temp_filepath):
+    with pytest.raises(ConflictingParametersError):
+        _ = Zettings(name=test_constants.NAME, filepath=temp_filepath, ram_only=True)
 
 
 # TODO: Add rest of method validates tests.

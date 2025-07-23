@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from collections.abc import MutableMapping
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,8 +12,16 @@ from beartype.vale import Is
 
 from zettings.constants import CREATED_KEY, NAME_PATTERN, NOTICE, NOTICE_KEY, UPDATED_KEY
 from zettings.decorators import beartype_wrapper
-from zettings.exceptions import KeyNotFoundError, ReadOnlyError
-from zettings.utils import delete_nested_key, get_nested_value, set_nested_value, validate_dictionary
+from zettings.exceptions import ConflictingParametersError, KeyNotFoundError, ReadOnlyError
+from zettings.utils.dict_utils import (
+    delete_nested_key,
+    get_nested_value,
+    set_nested_value,
+)
+from zettings.utils.validation_utils import (
+    is_exact_regex_match,
+    validate_dictionary,
+)
 
 
 class Zettings(MutableMapping[str, Any]):
@@ -22,10 +29,11 @@ class Zettings(MutableMapping[str, Any]):
     @beartype
     def __init__(
         self,
-        name: Annotated[str, Is[lambda s: bool(re.compile(NAME_PATTERN).fullmatch(s))]],
+        name: Annotated[str, Is[lambda s: is_exact_regex_match(s, NAME_PATTERN)]],
         defaults: dict | None = None,
         *,
         filepath: Path | None = None,
+        ram_only: bool = False,
         auto_reload: bool = True,
         read_only: bool = False,
         save_metadata: bool = True,
@@ -33,22 +41,28 @@ class Zettings(MutableMapping[str, Any]):
         """Initialize the settings instance.
 
         Args:
-            name (str): The name of the settings instance.
+            name (str): The name of the settings instance. Defaults to None.
+            defaults (dict | None): Default values for the settings. Defaults to None.
             filepath (Path | None): An explicit path to the settings file.
-             When None, the Path object will be created using: Path.home() / f".{name}/settings.toml".
-
-            defaults (dict | None, optional): A dictionary of default settings. Defaults to None.
+             - When None, the Path object will be created using: Path.home() / f".{name}/settings.toml".
+             - Not used when `ram_only` is True.
+            ram_only (bool, optional): If True, the settings will only be stored in RAM and not saved to disk. Defaults to False.
             auto_reload (bool, optional): Whether to always reload settings from file. Defaults to True.
             read_only (bool, optional): If True, disables writing to the settings file. Defaults to False.
             save_metadata (bool, optional): If True, saves metadata to the settings file. Defaults to True.
 
         Raises:
-            TypeError: If any argument is of an incorrect type.
-            ValueError: If filepath (str) does not match the required format.
+            InvalidTypeError: If any argument is of an incorrect type.
+            InvalidValueError: If any argument does not match the required format.
+            ConflictingParametersError: If `filepath` is set when `ram_only` is True.
 
         """
+        if filepath and ram_only:
+            msg = "Cannot set `filepath` when `ram_only` is True."
+            raise ConflictingParametersError(msg)
         self.name = name
         self._filepath = filepath if filepath else Path.home() / f"./.{name}/settings.toml"
+        self.ram_only = ram_only
         self.lock = Lock()
         self.auto_reload = auto_reload
         self.read_only = read_only
@@ -69,6 +83,9 @@ class Zettings(MutableMapping[str, Any]):
 
     def _initialize_file(self) -> None:
         """Initialize the settings file with metadata values and sets defaults for missing keys."""
+        if self.ram_only:
+            return
+
         if self._filepath.exists():
             return
         self._filepath.parent.mkdir(parents=True, exist_ok=True)
@@ -92,11 +109,16 @@ class Zettings(MutableMapping[str, Any]):
         """Save the settings to the file and update the updated timestamp."""
         if self.save_metadata:
             set_nested_value(self._data, UPDATED_KEY, datetime.now(tz=timezone.utc).isoformat())
+
+        if self.ram_only:
+            return
         with self.lock, Path.open(self._filepath, mode="w", encoding="utf-8") as f:
             toml.dump(self._data, f)
 
     def _load(self) -> None:
         """Load the settings from the file."""
+        if self.ram_only:
+            return
         with self.lock, Path.open(self._filepath, mode="r", encoding="utf-8") as f:
             self._data = toml.load(f)
 
