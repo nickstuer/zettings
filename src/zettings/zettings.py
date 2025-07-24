@@ -1,10 +1,19 @@
+"""Core settings functionality for the Zettings library.
+
+This module contains the main Zettings class that provides a comprehensive
+settings management system. It implements the MutableMapping protocol
+to expose settings as standard Python dictionaries while providing persistent
+storage to TOML files with advanced features like auto_reload, read_only mode,
+thread safety, and dotted key notation for nested settings.
+"""
+
 from __future__ import annotations
 
-from collections.abc import MutableMapping
+from collections.abc import Iterator, MutableMapping
 from datetime import datetime, timezone
 from pathlib import Path
 from threading import Lock
-from typing import Annotated, Any
+from typing import Annotated, Any, Final, TypeAlias
 
 import toml
 from beartype import beartype
@@ -20,17 +29,27 @@ from zettings.utils.dict_utils import (
 )
 from zettings.utils.validation_utils import (
     is_exact_regex_match,
+    is_valid_key,
     validate_dictionary,
 )
 
+# Type aliases for type hinting
+ZettingsValue: TypeAlias = int | float | str | bool | list[Any] | dict[str, Any]
+ZettingsDict: TypeAlias = dict[str, Any]
+ZettingsKey: TypeAlias = Annotated[str, Is[lambda s: is_valid_key(s)]]
+
 
 class Zettings(MutableMapping[str, Any]):
+    """A configuration/settings utility that that exposes project settings as standard Python dictionaries."""
+
+    _DEFAULT_FILEPATH_TEMPLATE: Final[str] = "./.{name}/settings.toml"
+
     @beartype_wrapper
     @beartype
     def __init__(
         self,
         name: Annotated[str, Is[lambda s: is_exact_regex_match(s, NAME_PATTERN)]],
-        defaults: dict | None = None,
+        defaults: ZettingsDict | None = None,
         *,
         filepath: Path | None = None,
         ram_only: bool = False,
@@ -41,33 +60,40 @@ class Zettings(MutableMapping[str, Any]):
         """Initialize the settings instance.
 
         Args:
-            name (str): The name of the settings instance. Defaults to None.
-            defaults (dict | None): Default values for the settings. Defaults to None.
-            filepath (Path | None): An explicit path to the settings file.
-             - When None, the Path object will be created using: Path.home() / f".{name}/settings.toml".
-             - Not used when `ram_only` is True.
-            ram_only (bool, optional): If True, the settings will only be stored in RAM and not saved to disk. Defaults to False.
-            auto_reload (bool, optional): Whether to always reload settings from file. Defaults to True.
-            read_only (bool, optional): If True, disables writing to the settings file. Defaults to False.
-            save_metadata (bool, optional): If True, saves metadata to the settings file. Defaults to True.
+            name: The name of the settings instance.
+            defaults: Default values for the settings. Defaults to None.
+            filepath: An explicit path to the settings file.
+                When None, the Path object will be created using: Path.home() / f".{name}/settings.toml".
+                Not used when `ram_only` is True.
+            ram_only: If True, the settings will only be stored in RAM and not saved to disk. Defaults to False.
+            auto_reload: If True, the settings will be reloaded on each get/set. Defaults to True.
+            read_only: If True, disables writing to the settings file. Defaults to False.
+            save_metadata: If True, saves metadata to the settings file. Defaults to True.
 
         Raises:
             InvalidTypeError: If any argument is of an incorrect type.
             InvalidValueError: If any argument does not match the required format.
-            ConflictingParametersError: If `filepath` is set when `ram_only` is True.
+            ConflictingParametersError: If `filepath` is True and `ram_only` is True.
 
         """
         if filepath and ram_only:
             msg = "Cannot set `filepath` when `ram_only` is True."
             raise ConflictingParametersError(msg)
-        self.name = name
-        self._filepath = filepath if filepath else Path.home() / f"./.{name}/settings.toml"
-        self.ram_only = ram_only
-        self.lock = Lock()
-        self.auto_reload = auto_reload
-        self.read_only = read_only
-        self.save_metadata = save_metadata
-        self._data = {}
+
+        self.name: str = name
+        self._filepath: Path = (
+            filepath
+            if filepath
+            else Path.home() / self._DEFAULT_FILEPATH_TEMPLATE.format(name=name)
+            if not ram_only
+            else None
+        )
+        self.ram_only: bool = ram_only
+        self.lock: Lock = Lock()
+        self.auto_reload: bool = auto_reload
+        self.read_only: bool = read_only
+        self.save_metadata: bool = save_metadata
+        self._data: ZettingsDict = {}
         if defaults is None:
             defaults = {}
 
@@ -96,14 +122,12 @@ class Zettings(MutableMapping[str, Any]):
             set_dotted_key(self._data, UPDATED_KEY, datetime.now(tz=timezone.utc).isoformat())
         self._save()
 
-    def _initialize_defaults(self, d: dict, parent_key: str = "") -> None:
+    def _initialize_defaults(self, d: ZettingsDict, parent_key: str = "") -> None:
         """Recursively set default values for missing keys in the settings dictionary."""
-        for k, v in d.items():
-            full_key = f"{parent_key}.{k}" if parent_key else k
+        for key, value in d.items():
+            full_key = f"{parent_key}.{key}" if parent_key else key
             if not self.exists(full_key):
-                self.set(full_key, v)
-            elif isinstance(v, dict):
-                self._initialize_defaults(v, full_key)
+                self.set(full_key, value)
 
     def _save(self) -> None:
         """Save the settings to the file and update the updated timestamp."""
@@ -122,14 +146,16 @@ class Zettings(MutableMapping[str, Any]):
         with self.lock, Path.open(self._filepath, mode="r", encoding="utf-8") as f:
             self._data = toml.load(f)
 
+    @beartype_wrapper
+    @beartype
     def exists(self, key: str) -> bool:
-        """Check if a key exists in the configuration.
+        """Check if a key exists in the settings.
 
         Args:
-        key (str): The key to check for existence.
+            key: The key to check for existence.
 
         Returns:
-        bool: True if the key exists, False otherwise.
+            True if the key exists, False otherwise.
 
         """
         if self.auto_reload:
@@ -139,18 +165,18 @@ class Zettings(MutableMapping[str, Any]):
 
     @beartype_wrapper
     @beartype
-    def get(self, key: str, default: Any = None) -> Any | None:  # noqa: ANN401
-        """Return a value from the configuration by key.
+    def get(self, key: str, default: ZettingsValue | None = None) -> ZettingsValue | None:
+        """Return a value from the settings by key.
 
         Args:
-        key (str): The key to return a value from.
-        default (Any | None): The default value to return if the key does not exist. Defaults to None.
+            key: The key to return a value from.
+            default: The default value to return if the key does not exist. Defaults to None.
 
         Returns:
-        Any | None: The value associated with the key, or `default` if the key does not exist.
+            The value associated with the key, or `default` if the key does not exist.
 
         Raises:
-        KeyNotValidError: If the key is not valid.
+            KeyNotValidError: If the key is not valid.
 
         """
         if self.auto_reload:
@@ -163,20 +189,17 @@ class Zettings(MutableMapping[str, Any]):
 
     @beartype_wrapper
     @beartype
-    def set(self, key: str, value: (int | float | str | bool | list | dict)) -> None:  # noqa: FBT001, PYI041
-        """Set a value in the configuration by key.
+    def set(self, key: str, value: ZettingsValue) -> None:
+        """Set a value in the settings by key.
 
         Args:
-        key (str): The key to store the value under.
-        value (Any): The value to set for the key.
-
-        Returns:
-        None
+            key: The key to store the value under.
+            value: The value to set for the key.
 
         Raises:
-        InvalidKeyError: If the key is not valid.
-        InvalidValueError: If the value is None.
-        MappingError: If the key points to a non dictionary value.
+            InvalidKeyError: If the key is not valid.
+            InvalidValueError: If the value is None.
+            MappingError: If the key points to a non dictionary value.
 
         """
         if self.read_only:
@@ -188,28 +211,26 @@ class Zettings(MutableMapping[str, Any]):
         set_dotted_key(self._data, key, value)
         self._save()
 
-    def __getitem__(self, key: str) -> Any | None:  # noqa: ANN401
-        """Get an item from the configuration by key."""
+    def __getitem__(self, key: str) -> ZettingsValue | None:
+        """Get an item from the settings by key."""
         return self.get(key)
 
-    def __setitem__(self, key: str, value: Any) -> None:  # noqa: ANN401
-        """Set an item in the configuration by key."""
+    def __setitem__(self, key: str, value: ZettingsValue) -> None:
+        """Set an item in the settings by key."""
         self.set(key, value)
 
-    def __repr__(self) -> str:  # noqa: D105
+    def __repr__(self) -> str:
+        """Return a string representation of the Zettings instance."""
         return f"Settings `{self.name}`. File stored at: {self._filepath}"
 
     def __delitem__(self, key: str) -> None:
         """Delete an item from the settings by key.
 
         Args:
-        key (str): The key to delete from the settings file.
-
-        Returns:
-        None
+            key: The key to delete from the settings file.
 
         Raises:
-        PermissionError: If the settings are read only.
+            ReadOnlyError: If the settings are read only.
 
         """
         if self.read_only:
@@ -222,7 +243,7 @@ class Zettings(MutableMapping[str, Any]):
         del_dotted_key(self._data, key)
         self._save()
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         """Return an iterator over the keys in the settings."""
         if self.auto_reload:
             self._load()
@@ -233,13 +254,13 @@ class Zettings(MutableMapping[str, Any]):
         if self.auto_reload:
             self._load()
 
-        return self.count(self._data)
+        return self._count(self._data)
 
-    def count(self, d: dict) -> int:
+    def _count(self, d: ZettingsDict) -> int:
         """Count the number of items in a nested dictionary."""
         total = 0
         for value in d.values():
             total += 1
             if isinstance(value, dict):
-                total += self.count(value)
+                total += self._count(value)
         return total

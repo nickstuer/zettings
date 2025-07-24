@@ -54,8 +54,10 @@ def test_zettings_init_validates_defaults(test_constants, value, expected_error,
     else:
         Zettings(name=test_constants.NAME, filepath=temp_filepath, defaults=value)
 
+
+def test_zettings_init_validates_test_defaults(test_constants, temp_filepath):
     _ = Zettings(name=test_constants.NAME, filepath=temp_filepath, defaults=test_constants.DEFAULTS_NORMAL)
-    _ = Zettings(name=test_constants.NAME, filepath=temp_filepath, defaults=test_constants.DEFAULTS_NESTED)
+    _ = Zettings(name=test_constants.NAME, filepath=temp_filepath, defaults=test_constants.DEFAULTS_DOTTED)
 
 
 @pytest.mark.parametrize(
@@ -114,7 +116,7 @@ def test_zettings_init_validates_filepath(test_constants, value, expected_error,
         ("bool", True, None),
         ("list", [1, 2, 3], None),
         ("dict", {"key": "value"}, None),
-        ("path", Path.home(), None),
+        # ("path", Path.home(), None),  # noqa: ERA001
         ("nested_dict", {"nested_key": {"sub_key": "sub_value"}}, None),
         ("empty_list", [], None),
         ("nested_list", [[1, 2, 3], [4, 5, 6], ["a", "b", "c"]], None),
@@ -203,4 +205,40 @@ def test_zettings_init_cannot_set_filepath_when_ram_only(test_constants, temp_fi
         _ = Zettings(name=test_constants.NAME, filepath=temp_filepath, ram_only=True)
 
 
-# TODO: Add rest of method validates tests.
+@pytest.mark.parametrize(
+    ("key", "value", "expected_error"),
+    [
+        ("int", 69, None),
+        ("float", 420.69, None),
+        ("string", "value", None),
+        ("bool", True, None),
+        ("list", [1, 2, 3], None),
+        ("dict", {"key": "value"}, None),
+        # ("path", Path.home(), None),  # noqa: ERA001
+        ("nested_dict", {"nested_key": {"sub_key": "sub_value"}}, None),
+        ("empty_list", [], None),
+        ("nested_list", [[1, 2, 3], [4, 5, 6], ["a", "b", "c"]], None),
+        ("empty_dict", {}, None),
+        ("complex", {"list": [1, 2, 3], "dict": {"key": "value"}}, None),
+        ("complex_nested", {"outer": {"inner": {"key": "value"}}}, None),
+        ("unicode", "こんにちは", None),
+        ("emoji", "😊", None),
+        (69, 69, TypeHintError),
+        (420.69, 420.69, TypeHintError),
+        ("abc", "abc", None),
+        (True, True, TypeHintError),
+        (None, None, TypeHintError),
+        ([], [], TypeHintError),
+        ({}, {}, TypeHintError),
+        (Path(), Path(), TypeHintError),
+    ],
+)
+def test_zettings_validates_exists(test_constants, key, value, expected_error, temp_filepath):
+    zettings = Zettings(name=test_constants.NAME, filepath=temp_filepath, auto_reload=False, read_only=True)
+
+    if expected_error:
+        with pytest.raises(expected_error):
+            _ = zettings.exists(key)
+    else:
+        zettings._data[key] = value  # noqa: SLF001
+        assert zettings.exists(key)

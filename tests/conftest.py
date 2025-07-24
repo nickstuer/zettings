@@ -44,7 +44,7 @@ class TestConstants:
         "key10": 3.14,
     }
 
-    DEFAULTS_NESTED: ClassVar[dict] = {
+    DEFAULTS_DOTTED: ClassVar[dict] = {
         "key1": "value1",
         "key2": "value2",
         "key3.subkey1": "subvalue1",

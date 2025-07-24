@@ -35,8 +35,8 @@ def test_zettings_initializes_with_defaults_normal(test_constants, temp_filepath
     assert len(zettings) == 24
 
 
-def test_zettings_initializes_with_defaults_nested(test_constants, temp_filepath):
-    zettings = Zettings(name=test_constants.NAME, filepath=temp_filepath, defaults=test_constants.DEFAULTS_NESTED)
+def test_zettings_initializes_with_defaults_dotted(test_constants, temp_filepath):
+    zettings = Zettings(name=test_constants.NAME, filepath=temp_filepath, defaults=test_constants.DEFAULTS_DOTTED)
     assert zettings.name == test_constants.NAME
     assert zettings.filepath == temp_filepath
     assert zettings.auto_reload is True
@@ -61,8 +61,8 @@ def test_zettings_handles_missing_keys_from_defaults_normal(test_constants, temp
         assert zettings.get(k) == v
 
 
-def test_zettings_handles_missing_keys_from_defaults_nested(test_constants, temp_filepath):
-    defaults = test_constants.DEFAULTS_NESTED.copy()
+def test_zettings_handles_missing_keys_from_defaults_dotted(test_constants, temp_filepath):
+    defaults = test_constants.DEFAULTS_DOTTED.copy()
     defaults["foo"] = "bar"
     zettings = Zettings(name=test_constants.NAME, filepath=temp_filepath, defaults=defaults)
 
@@ -169,7 +169,7 @@ def test_zettings_stores_settings_in_home_directory_if_no_filepath(test_constant
     assert temp_homepath.exists()
 
 
-def test_settings_iter_(test_constants, temp_filepath):
+def test_settings_iter_without_auto_reload(test_constants, temp_filepath):
     zettings = Zettings(name=test_constants.NAME, filepath=temp_filepath, save_metadata=False, auto_reload=False)
     keys = list(zettings)
     assert len(keys) == 0
@@ -180,6 +180,19 @@ def test_settings_iter_(test_constants, temp_filepath):
 
     assert len(keys) == 2
     assert len(zettings) == 3
+
+
+def test_settings_iter_with_auto_reload(test_constants, temp_filepath):
+    zettings = Zettings(name=test_constants.NAME, filepath=temp_filepath, save_metadata=False, auto_reload=False)
+    zettings2 = Zettings(name=test_constants.NAME, filepath=temp_filepath, save_metadata=False, auto_reload=True)
+
+    zettings2.set("foo", "bar")
+
+    assert zettings.get("foo") is None
+    zettings.auto_reload = True
+    keys = list(zettings)
+    assert len(keys) == 1
+    assert zettings.get("foo") == "bar"
 
 
 def test_zettings_del(test_constants, temp_filepath):
@@ -298,3 +311,22 @@ def test_able_to_get_but_not_set_filepath(test_constants, temp_filepath):
     assert zettings.filepath == temp_filepath
     with pytest.raises(AttributeError):
         zettings.filepath = None
+
+
+def test_get_ram_only(test_constants):
+    zettings = Zettings(name=test_constants.NAME, save_metadata=False, ram_only=True)
+
+    zettings._data["foo"] = "bar"  # noqa: SLF001
+    assert zettings.get("foo") == "bar"
+
+
+def test_set_ram_only(test_constants):
+    zettings = Zettings(name=test_constants.NAME, save_metadata=False, ram_only=True)
+
+    zettings.set("foo", "bar")
+    assert zettings._data["foo"] == "bar"  # noqa: SLF001
+
+
+def test_filepath_is_none_when_ram_only_is_true(test_constants):
+    zettings = Zettings(name=test_constants.NAME, save_metadata=False, ram_only=True)
+    assert zettings.filepath is None
