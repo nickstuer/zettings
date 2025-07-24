@@ -11,8 +11,6 @@
 
 [![license](https://img.shields.io/github/license/nickstuer/zettings.svg)](LICENSE)
 
-A settings management library that exposes project settings as standard Python dictionaries with TOML file persistence.
-
 **Zettings** is a Python settings library designed for simplicity and developer experience. It implements the MutableMapping protocol to expose settings as standard Python dictionaries while providing persistent storage to TOML files with advanced features like auto_reload, read_only mode, thread safety, and dotted key notation for nested settings.
 
 
@@ -99,8 +97,8 @@ settings["preferences.theme"] = "dark"
 settings["preferences.notifications"] = True
 
 # Access values using dictionary syntax
-username = settings["username"]  # "John Doe"
-theme = settings["preferences.theme"]  # "dark"
+username = settings["username"]         # "John Doe"
+theme = settings["preferences.theme"]   # "dark"
 
 # Fallback values
 timeout = settings.get("api.timeout", 30)  # 30 if not set
@@ -140,9 +138,12 @@ defaults = {
 }
 
 settings = Zettings("myapp", defaults)
+print(settings["theme.color"])    # blue
 ```
 
-#### Provide File Path for Zettings
+#### File Path
+Provide exact TOML file path for your application:
+
 ```python
 from pathlib import Path
 from zettings import Zettings
