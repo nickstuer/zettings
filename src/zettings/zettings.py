@@ -165,15 +165,15 @@ class Zettings(MutableMapping[str, Any]):
 
     @beartype_wrapper
     @beartype
-    def get(self, key: str, default: ZettingsValue | None = None) -> ZettingsValue | None:
+    def get(self, key: str, fallback: ZettingsValue | None = None) -> ZettingsValue | None:
         """Return a value from the settings by key.
 
         Args:
             key: The key to return a value from.
-            default: The default value to return if the key does not exist. Defaults to None.
+            fallback: The fallback value to return if the key does not exist. Defaults to None.
 
         Returns:
-            The value associated with the key, or `default` if the key does not exist.
+            The value associated with the key, or `fallback` if the key does not exist.
 
         Raises:
             KeyNotValidError: If the key is not valid.
@@ -185,7 +185,7 @@ class Zettings(MutableMapping[str, Any]):
         try:
             return get_dotted_key(self._data, key)
         except KeyNotFoundError:
-            return default
+            return fallback
 
     @beartype_wrapper
     @beartype

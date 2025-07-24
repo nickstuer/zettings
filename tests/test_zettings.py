@@ -83,8 +83,8 @@ def test_zettings_get_returns_none_for_non_existent_key(temp_zettings):
     assert temp_zettings.get("non_existent_key") is None
 
 
-def test_zettings_get_returns_default_value_for_non_existent_key(temp_zettings):
-    assert temp_zettings.get("non_existent_key", default="default_value") == "default_value"
+def test_zettings_get_returns_fallback_value_for_non_existent_key(temp_zettings):
+    assert temp_zettings.get("non_existent_key", fallback="fallback_value") == "fallback_value"
 
 
 def test_zettings_init_creates_parent_directory(test_constants, temp_filepath):
