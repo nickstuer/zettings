@@ -232,6 +232,14 @@ def test_zettings_delete_with_read_only_true(test_constants, temp_filepath):
     assert zettings.get("foo") == "bar"
 
 
+def test_zettings_delete_with_auto_reload_false(test_constants, temp_filepath):
+    zettings = Zettings(name=test_constants.NAME, filepath=temp_filepath, save_metadata=False)
+    zettings.set("foo", "bar")
+    zettings.auto_reload = False
+    del zettings["foo"]
+    assert zettings.get("foo") is None
+
+
 def test_get_with_duplicate_keynames(test_constants, temp_filepath):
     defaults = {
         "key1.test": "value1",
